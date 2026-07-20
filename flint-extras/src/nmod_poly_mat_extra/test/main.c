@@ -19,6 +19,7 @@
 #include "t-hermite_normal_form.c"
 #include "t-kernel.c"
 #include "t-mbasis.c"
+#include "t-mbasis_variants.c"
 #include "t-mul_geometric.c"
 #include "t-mul_vandermonde.c"
 #include "t-mul_waksman.c"
@@ -36,6 +37,7 @@ test_struct tests[] =
     TEST_FUNCTION(nmod_poly_mat_hnf),
     TEST_FUNCTION(nmod_poly_mat_kernel),
     TEST_FUNCTION(nmod_poly_mat_mbasis),
+    TEST_FUNCTION(nmod_mat_poly_mbasis_variants),
     TEST_FUNCTION(nmod_poly_mat_mul_geometric),
     TEST_FUNCTION(nmod_poly_mat_mul_waksman),
     TEST_FUNCTION(nmod_poly_mat_mul_vandermonde),
