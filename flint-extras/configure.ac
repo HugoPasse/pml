@@ -423,7 +423,8 @@ AC_MSG_CHECKING([use of maple])
 AC_ARG_WITH(maplec,
 [AS_HELP_STRING([--with-maplec=DIR], [Maple include directory])],
 AC_MSG_RESULT([yes])
-CPPFLAGS="$CPPFLAGS -I$withval/include"
+#CPPFLAGS="$CPPFLAGS -I$withval/include"
+CPPFLAGS="$CPPFLAGS -isystem $withval/include" 
 maple_include_path="$withval", AC_MSG_RESULT([no])
 )
 
