@@ -1,5 +1,5 @@
 /* 
-   Copyright (C) 2024 Gilles Villard
+   Copyright (C) 2024, 2026 Gilles Villard
 
    This file is part of mapml. mapml is free software: you
    can redistribute it and/or modify it under the terms of the GNU Lesser
@@ -17,8 +17,7 @@
 // *******************************************************
 
 
-#include "mapml_conversion.h"
-
+#include "mapml_matpoly_dummy_export.h"
 
 
 /**********************************************************
