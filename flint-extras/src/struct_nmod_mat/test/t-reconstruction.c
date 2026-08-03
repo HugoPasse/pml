@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include "struct_nmod_mat.h"
 
-int test_reconstruction(struct_nmod_toeplitz_t mat){
-    return 1;
-}
-
 TEST_FUNCTION_START(struct_nmod_toeplitz_dense, state)
 {
     long n = 10;
@@ -22,9 +18,9 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_dense, state)
     nmod_mat_t dense_mat;
     nmod_mat_init(dense_mat,n,m,N);
     struct_nmod_toeplitz_dense(mat,dense_mat);
-   
+
     nmod_mat_print_pretty(dense_mat);
-    //TEST_FUNCTION_FAIL("PLUQ: wrong rank\n m = %wu, n = %wu, r = %wu, rank = %wu\n", m, n, r, rank);
+
     TEST_FUNCTION_END(state);
 }
 

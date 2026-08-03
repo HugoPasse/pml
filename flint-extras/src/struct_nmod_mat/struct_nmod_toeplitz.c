@@ -50,8 +50,54 @@ void struct_nmod_toeplitz_dense(struct_nmod_toeplitz_t mat,
     }  
 }
 
-void struct_nmod_toeplitz_mul_vec(struct_nmod_toeplitz_t mat,
+// ---------------------------- //
+// ----------- SUM ------------ //
+// ---------------------------- //
+
+void struct_nmod_toeplitz_add(struct_nmod_toeplitz_t a,
+                               struct_nmod_toeplitz_t b, 
+                               struct_nmod_toeplitz_t res){
+    // TODO add tests for compatibility ?
+    _nmod_vec_add(res->data, a->data, b->data, b->nrows+b->ncols-1, a->mod);
+}
+
+// ---------------------------- //
+// ------ MULTIPLICATION ------ //
+// ---------------------------- //
+void struct_nmod_toeplitz_right_mul_vec(struct_nmod_toeplitz_t mat,
                                     nn_ptr v,
                                     nn_ptr res){
     _nmod_poly_mulmid(res, mat->data, mat->nrows+mat->ncols-1, v, mat->ncols, mat->ncols-1, mat->nrows+mat->ncols-1, mat->mod);  
+}
+
+void struct_nmod_toeplitz_right_mul_mat(struct_nmod_toeplitz_t mat,
+                                    nmod_mat_t b,
+                                    nmod_mat_t res){
+    nn_ptr vec_mul = _nmod_vec_init(mat->ncols); 
+    nn_ptr vec_res = _nmod_vec_init(mat->nrows); 
+    for(int i=0; i<nmod_mat_ncols(b); i++){
+        // TODO see if this can be done more efficiently
+        for(int j=0;j<nmod_mat_nrows(b); j++){
+            vec_mul[j] = nmod_mat_get_entry(b,i,j);
+        }
+        struct_nmod_toeplitz_right_mul_vec(mat,vec_mul,vec_res);
+        // TODO again, see if this can be done more efficiently
+        for(int j=0;j<nmod_mat_nrows(b); j++){
+            nmod_mat_set_entry(res,i,j,vec_res[j]);
+        }
+    }
+    _nmod_vec_clear(vec_mul);
+    _nmod_vec_clear(vec_res);
+}
+
+void struct_nmod_toeplitz_left_mul_vec(struct_nmod_toeplitz_t mat,
+                                    nn_ptr v,
+                                    nn_ptr res){
+    //TODO
+}
+
+void struct_nmod_toeplitz_left_mul_mat(struct_nmod_toeplitz_t mat,
+                                    nmod_mat_t b,
+                                    nmod_mat_t res){
+    // TODO result matrix indexed in row major order -> copy directly there    
 }
