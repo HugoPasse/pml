@@ -11,15 +11,16 @@
 #define STRUCT_NMOD_MAT_INLINE static inline
 #endif
 
-/* Toeplitz matrices stored as
+/* ---------------------------
+ * Toeplitz matrices stored as
  *     a3 a2 a1 a0
  *     a4 a3 a2 a1
  *     a5 a4 a3 a2
- */
+ -------------------------- */
 typedef struct
 {
     ulong nrows,ncols; // Dimensions
-    ulong n; // Modulus
+    ulong n; // Modulus TODO Remove this is useless because it is stored in "mod"
     nn_ptr data; // Entries [a_0,...,a_5]
     nmod_t mod;
 } struct_nmod_toeplitz_struct;
@@ -78,4 +79,84 @@ void struct_nmod_toeplitz_left_mul_vec(struct_nmod_toeplitz_t mat,
 void struct_nmod_toeplitz_left_mul_mat(struct_nmod_toeplitz_t mat,
                                     nmod_mat_t b,
                                     nmod_mat_t res);
+
+
+/* ---------------------------
+ * Lower triangular Toeplitz matrices 
+ *     a0 0  0  0
+ *     a1 a0 0  0
+ *     a2 a1 a0 0
+ * -------------------------- */
+typedef struct
+{
+    ulong nrows,ncols; // Dimensions
+    ulong n; // Modulus
+    nn_ptr data; // Entries [a_0,...,a_5]
+    nmod_t mod;
+} lower_triangular_nmod_toeplitz_struct;
+
+typedef lower_triangular_nmod_toeplitz_struct lower_triangular_nmod_toeplitz_t[1];
+
+/* ---------------------------
+ * Upper triangular Toeplitz matrices 
+ *     a3 a2 a1 a0
+ *     0  a3 a2 a1
+ *     0  0  a3 a2 
+ * -------------------------- */
+typedef struct
+{
+    ulong nrows,ncols; // Dimensions
+    ulong n; // Modulus
+    nn_ptr data; // Entries [a_0,...,a_5]
+    nmod_t mod;
+} upper_triangular_nmod_toeplitz_struct;
+
+typedef upper_triangular_nmod_toeplitz_struct upper_triangular_nmod_toeplitz_t[1];
+
+/* ---------------------------
+ * Toeplitz-like matrices
+ * --------------------------- */
+typedef struct
+{
+    ulong nrows,ncols; // Dimensions
+    ulong ngens; // Number of generators
+    lower_triangular_nmod_toeplitz_t* lower_generators; // Matrices L(g_i)
+    upper_triangular_nmod_toeplitz_t* upper_generators; // Matrices U(h_i)
+    nmod_t mod;
+} nmod_toeplitz_like_struct;
+
+typedef nmod_toeplitz_like_struct nmod_toeplitz_like_t[1];
+
+/* Initialization */
+void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
+                             ulong nrows,
+                             ulong ncols,
+                             ulong N);
+
+void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
+                             ulong ngens,
+                             lower_triangular_nmod_toeplitz_t* lower_generators,
+                             upper_triangular_nmod_toeplitz_t* upper_generators);
+
+// TODO is this relevant (too many arguments ?)
+//void nmod_toeplitz_like_init_set();
+void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat, 
+                               nmod_mat_t dense_mat);
+
+/* Getters */
+// DO THESE INLINE
+ulong nmod_toeplitz_like_t_nrows(nmod_toeplitz_like_t mat);
+ulong nmod_toeplitz_like_t_ncols(nmod_toeplitz_like_t mat);
+ulong nmod_toeplitz_like_t_mod(nmod_toeplitz_like_t mat);
+
+ulong nmod_toeplitz_like_get_entry(nmod_toeplitz_like_t mat,
+                                    ulong i,
+                                    ulong j);
+
+/* Arithmetic */
+void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
+                             nmod_toeplitz_like_t b, 
+                             nmod_toeplitz_like_t res);
+
+
 #endif 
