@@ -81,6 +81,7 @@ void struct_nmod_toeplitz_left_mul_mat(struct_nmod_toeplitz_t mat,
                                     nmod_mat_t res);
 
 
+// TODO ADD GETTERS
 /* ---------------------------
  * Lower triangular Toeplitz matrices 
  *     a0 0  0  0
@@ -90,13 +91,30 @@ void struct_nmod_toeplitz_left_mul_mat(struct_nmod_toeplitz_t mat,
 typedef struct
 {
     ulong nrows,ncols; // Dimensions
-    ulong n; // Modulus
     nn_ptr data; // Entries [a_0,...,a_5]
     nmod_t mod;
-} lower_triangular_nmod_toeplitz_struct;
+} nmod_mat_lower_toeplitz_struct;
 
-typedef lower_triangular_nmod_toeplitz_struct lower_triangular_nmod_toeplitz_t[1];
+typedef nmod_mat_lower_toeplitz_struct nmod_mat_lower_toeplitz_t[1];
 
+void nmod_mat_lower_toeplitz_init(nmod_mat_lower_toeplitz_t mat,
+                                   ulong nrows,
+                                   ulong ncols,
+                                   ulong N);
+
+void nmod_mat_lower_toeplitz_set(nmod_mat_lower_toeplitz_t mat,
+                                  nn_ptr data);
+
+void nmod_mat_lower_toeplitz_init_set(nmod_mat_lower_toeplitz_t mat,
+                                       ulong nrows,
+                                       ulong ncols,
+                                       ulong N,
+                                       nn_ptr data);
+
+void nmod_mat_lower_toeplitz_dense(nmod_mat_lower_toeplitz_t mat,
+                                    nmod_mat_t res);
+
+// TODO ADD GETTERS
 /* ---------------------------
  * Upper triangular Toeplitz matrices 
  *     a3 a2 a1 a0
@@ -106,12 +124,34 @@ typedef lower_triangular_nmod_toeplitz_struct lower_triangular_nmod_toeplitz_t[1
 typedef struct
 {
     ulong nrows,ncols; // Dimensions
-    ulong n; // Modulus
     nn_ptr data; // Entries [a_0,...,a_5]
     nmod_t mod;
-} upper_triangular_nmod_toeplitz_struct;
+} nmod_mat_upper_toeplitz_struct;
 
-typedef upper_triangular_nmod_toeplitz_struct upper_triangular_nmod_toeplitz_t[1];
+typedef nmod_mat_upper_toeplitz_struct nmod_mat_upper_toeplitz_t[1];
+
+void nmod_mat_upper_toeplitz_init(nmod_mat_upper_toeplitz_t mat,
+                                   ulong nrows,
+                                   ulong ncols,
+                                   ulong N);
+
+void nmod_mat_upper_toeplitz_set(nmod_mat_upper_toeplitz_t mat,
+                                  nn_ptr data);
+
+void nmod_mat_upper_toeplitz_init_set(nmod_mat_upper_toeplitz_t mat,
+                                       ulong nrows,
+                                       ulong ncols,
+                                       ulong N,
+                                       nn_ptr data);
+
+void nmod_mat_upper_toeplitz_dense(nmod_mat_upper_toeplitz_t mat,
+                                    nmod_mat_t res);
+
+// This function return the entry (i,j) of the product lmat * umat
+ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
+                                         nmod_mat_upper_toeplitz_t umat,
+                                         ulong i,
+                                         ulong j); 
 
 /* ---------------------------
  * Toeplitz-like matrices
@@ -120,8 +160,8 @@ typedef struct
 {
     ulong nrows,ncols; // Dimensions
     ulong ngens; // Number of generators
-    lower_triangular_nmod_toeplitz_t* lower_generators; // Matrices L(g_i)
-    upper_triangular_nmod_toeplitz_t* upper_generators; // Matrices U(h_i)
+    nmod_mat_lower_toeplitz_t* lower_gens; // Matrices L(g_i)
+    nmod_mat_upper_toeplitz_t* upper_gens; // Matrices U(h_i)
     nmod_t mod;
 } nmod_toeplitz_like_struct;
 
@@ -135,8 +175,8 @@ void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
 
 void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
                              ulong ngens,
-                             lower_triangular_nmod_toeplitz_t* lower_generators,
-                             upper_triangular_nmod_toeplitz_t* upper_generators);
+                             nmod_mat_lower_toeplitz_t* lower_generators,
+                             nmod_mat_upper_toeplitz_t* upper_generators);
 
 // TODO is this relevant (too many arguments ?)
 //void nmod_toeplitz_like_init_set();
@@ -144,7 +184,7 @@ void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat,
                                nmod_mat_t dense_mat);
 
 /* Getters */
-// DO THESE INLINE
+// TODO DO THESE INLINE ?
 ulong nmod_toeplitz_like_t_nrows(nmod_toeplitz_like_t mat);
 ulong nmod_toeplitz_like_t_ncols(nmod_toeplitz_like_t mat);
 ulong nmod_toeplitz_like_t_mod(nmod_toeplitz_like_t mat);

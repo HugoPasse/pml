@@ -9,8 +9,8 @@ void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
 
 void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
                              ulong ngens,
-                             lower_triangular_nmod_toeplitz_t* lower_generators,
-                             upper_triangular_nmod_toeplitz_t* upper_generators){
+                             nmod_mat_lower_toeplitz_t* lower_generators,
+                             nmod_mat_upper_toeplitz_t* upper_generators){
 
 }
 
@@ -20,27 +20,51 @@ void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat,
 }
 
 ulong nmod_toeplitz_like_t_nrows(nmod_toeplitz_like_t mat){
-    return 0;
+    return mat->nrows;
 }
 
 ulong nmod_toeplitz_like_t_ncols(nmod_toeplitz_like_t mat){
-    return 0;
+    return mat->ncols;
 }
 
 ulong nmod_toeplitz_like_t_mod(nmod_toeplitz_like_t mat){
-    return 0;
+    return mat->mod.n;
+}
+
+ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
+                                         nmod_mat_upper_toeplitz_t umat,
+                                         ulong i,
+                                         ulong j){
+    dot_params_t params;
+    params = _nmod_vec_dot_params(lmat->ncols, lmat->mod);
+    return _nmod_vec_dot_rev(umat->data + umat->ncols-j, lmat->data + i, lmat->ncols, lmat->mod, params);
 }
 
 ulong nmod_toeplitz_like_get_entry(nmod_toeplitz_like_t mat,
                                     ulong i,
                                     ulong j){
-    return 0;
+    ulong result = 0;
+    for(int i=0; i<mat->ngens; i++){
+        // TODO dedicated function for upper / lower types to do this
+    }
+    return result;
 }
 
 /* Arithmetic */
 void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t b, 
                              nmod_toeplitz_like_t res){
+    res->nrows = a->nrows;
+    res->ncols = a->ncols;
+    res->ngens = a->ngens + b->ngens;
+    nmod_init(&res->mod, a->mod.n);
 
+    for(int i=0; i<a->ngens; i++){
+         // Here copy generators
+    }
+    for(int i=0; i<b->ngens; i++){
+        // Here copy generators
+    }
+    // I think we should here do a copy of the generators
 }
 
