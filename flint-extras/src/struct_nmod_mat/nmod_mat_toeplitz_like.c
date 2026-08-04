@@ -37,7 +37,9 @@ ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
                                          ulong j){
     dot_params_t params;
     params = _nmod_vec_dot_params(lmat->ncols, lmat->mod);
-    return _nmod_vec_dot_rev(umat->data + umat->ncols-j, lmat->data + i, lmat->ncols, lmat->mod, params);
+    _nmod_vec_print_pretty(umat->data + umat->ncols - j - 1, FLINT_MIN(i,j)+1, lmat->mod);
+    _nmod_vec_print_pretty(lmat->data + FLINT_MAX(0,(int)i - (int)lmat->nrows), FLINT_MIN(i,j)+1, lmat->mod);
+    return _nmod_vec_dot_rev(umat->data + umat->ncols - j - 1, lmat->data + FLINT_MAX(0,(int)i - (int)lmat->nrows), FLINT_MIN(i,j)+1, lmat->mod, params);
 }
 
 ulong nmod_toeplitz_like_get_entry(nmod_toeplitz_like_t mat,
