@@ -79,6 +79,9 @@ void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat,
         nmod_mat_upper_toeplitz_dense(mat->upper_gens[i], udense);
         
         nmod_mat_addmul(dense_mat, dense_mat, ldense, udense);
+        
+        nmod_mat_clear(ldense);
+        nmod_mat_clear(udense);
     }
 }
 
