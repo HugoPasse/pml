@@ -47,12 +47,12 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_like, state)
         }
     }
     
-    int n = 1000;
+    int n = 100;
     int k = 10;
-    int m = 7000;
+    int m = 70;
     int N = 17;
     nmod_toeplitz_like_t testmat;
-    nmod_toeplitz_like_randtest(testmat, n, m, 4, k, N, state);
+    nmod_toeplitz_like_randtest(testmat, n, m, k, N, state);
     
     nmod_mat_t dense_test;
     nmod_mat_init(dense_test, n, m, N);

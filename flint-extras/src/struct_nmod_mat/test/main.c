@@ -5,6 +5,7 @@
 #include "t-toeplitz-mat.c"
 #include "t-toeplitz-add.c"
 #include "t-toeplitz-like.c"
+#include "t-toeplitz-like-add.c"
 
 /* Array of test functions ***************************************************/
 
@@ -15,6 +16,7 @@ test_struct tests[] =
     TEST_FUNCTION(struct_nmod_toeplitz_mul_mat),
     TEST_FUNCTION(struct_nmod_toeplitz_add),
     TEST_FUNCTION(struct_nmod_toeplitz_like),
+    TEST_FUNCTION(struct_nmod_toeplitz_like_add)
 };
 
 /* main function *************************************************************/

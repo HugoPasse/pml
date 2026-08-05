@@ -28,7 +28,6 @@ void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
 
 void nmod_toeplitz_like_set_vec(nmod_toeplitz_like_t mat,
                                  ulong ngens,
-                                 ulong rank,
                                  nn_ptr* lower_generators,
                                  nn_ptr* upper_generators){
     mat->ngens = ngens;
@@ -36,8 +35,8 @@ void nmod_toeplitz_like_set_vec(nmod_toeplitz_like_t mat,
     mat->upper_gens = malloc(ngens*sizeof(nmod_mat_upper_toeplitz_t));
 
     for(int i=0; i<ngens; i++){
-        nmod_mat_lower_toeplitz_init_set((mat->lower_gens)[i], mat->nrows, rank, mat->mod.n, lower_generators[i]);
-        nmod_mat_upper_toeplitz_init_set((mat->upper_gens)[i], rank, mat->ncols, mat->mod.n, upper_generators[i]);
+        nmod_mat_lower_toeplitz_init_set((mat->lower_gens)[i], mat->nrows, mat->nrows, mat->mod.n, lower_generators[i]);
+        nmod_mat_upper_toeplitz_init_set((mat->upper_gens)[i], mat->nrows, mat->ncols, mat->mod.n, upper_generators[i]);
     }
 }
 
@@ -45,7 +44,6 @@ void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
                                   ulong nrows,
                                   ulong ncols,
                                   ulong ngens,
-                                  ulong rank,
                                   ulong N,
                                   flint_rand_t state){
 
@@ -53,13 +51,13 @@ void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
     nn_ptr* lower_generators = malloc(ngens * sizeof(nn_ptr));
     nn_ptr* upper_generators = malloc(ngens * sizeof(nn_ptr));
     for(int i=0; i<ngens; i++){
-        lower_generators[i] = _nmod_vec_init(nrows+rank-1);
-        upper_generators[i] = _nmod_vec_init(ncols+rank-1);
+        lower_generators[i] = _nmod_vec_init(nrows);
+        upper_generators[i] = _nmod_vec_init(ncols);
 
-        _nmod_vec_randtest(lower_generators[i], state, nrows+rank-1, mat->mod);
-        _nmod_vec_randtest(upper_generators[i], state, ncols+rank-1, mat->mod);
+        _nmod_vec_randtest(lower_generators[i], state, nrows, mat->mod);
+        _nmod_vec_randtest(upper_generators[i], state, ncols, mat->mod);
     }
-    nmod_toeplitz_like_set_vec(mat,ngens,rank,lower_generators,upper_generators);
+    nmod_toeplitz_like_set_vec(mat,ngens,lower_generators,upper_generators);
 }
 
 void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat, 
@@ -127,17 +125,50 @@ ulong nmod_toeplitz_like_get_entry(nmod_toeplitz_like_t mat,
 void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t b, 
                              nmod_toeplitz_like_t res){
-    res->nrows = a->nrows;
-    res->ncols = a->ncols;
+    nmod_toeplitz_like_init(res, a->nrows, a->ncols, a->mod.n);
     res->ngens = a->ngens + b->ngens;
-    nmod_init(&res->mod, a->mod.n);
-
+    
+    nmod_mat_lower_toeplitz_t* lower_generators = malloc(res->ngens * sizeof(nmod_mat_lower_toeplitz_t));
+    nmod_mat_upper_toeplitz_t* upper_generators = malloc(res->ngens * sizeof(nmod_mat_upper_toeplitz_t));
     for(int i=0; i<a->ngens; i++){
-         // Here copy generators
+        nmod_mat_lower_toeplitz_init(lower_generators[i], a->nrows, a->nrows, a->mod.n);
+        nmod_mat_lower_toeplitz_set(lower_generators[i], a->lower_gens[i]->data);
+        nmod_mat_upper_toeplitz_init(upper_generators[i], a->nrows, a->ncols, a->mod.n);
+        nmod_mat_upper_toeplitz_set(upper_generators[i], a->upper_gens[i]->data);
     }
     for(int i=0; i<b->ngens; i++){
-        // Here copy generators
+        nmod_mat_lower_toeplitz_init(lower_generators[i+a->ngens], b->nrows, b->nrows, b->mod.n);
+        nmod_mat_lower_toeplitz_set(lower_generators[i+a->ngens], b->lower_gens[i]->data);
+        nmod_mat_upper_toeplitz_init(upper_generators[i+a->ngens], b->nrows, b->ncols, b->mod.n);
+        nmod_mat_upper_toeplitz_set(upper_generators[i+a->ngens], b->upper_gens[i]->data);
     }
-    // I think we should here do a copy of the generators
+    nmod_toeplitz_like_set(res, res->ngens, lower_generators, upper_generators);
 }
 
+void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
+                                           nn_ptr v, 
+                                           nn_ptr res){
+    // TODO
+}
+
+void nmod_toeplitz_like_mul_nmod_vec_right(nmod_toeplitz_like_t a,
+                                           nn_ptr v, 
+                                           nn_ptr res){
+    // TODO
+}
+
+void nmod_toeplitz_like_mul(nmod_toeplitz_like_t a,
+                             nmod_toeplitz_like_t b, 
+                             nmod_toeplitz_like_t res){
+    // TODO
+} 
+
+void nmod_toeplitz_like_inv(nmod_toeplitz_like_t a,
+                             nmod_toeplitz_like_t res){
+    // TODO
+}
+
+/* Generators reduction */
+void nmod_toeplitz_like_reduce_gens(nmod_toeplitz_like_t mat){
+
+}

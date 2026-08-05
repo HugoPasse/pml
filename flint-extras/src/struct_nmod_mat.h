@@ -180,7 +180,6 @@ void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
 
 void nmod_toeplitz_like_set_vec(nmod_toeplitz_like_t mat,
                                  ulong ngens,
-                                 ulong rank,
                                  nn_ptr* lower_generators,
                                  nn_ptr* upper_generators);
 
@@ -188,7 +187,6 @@ void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
                                   ulong nrows,
                                   ulong ncols,
                                   ulong ngens,
-                                  ulong rank,
                                   ulong N,
                                   flint_rand_t state);
 
@@ -212,5 +210,22 @@ void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t b, 
                              nmod_toeplitz_like_t res);
 
+void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
+                                           nn_ptr v, 
+                                           nn_ptr res);
+
+void nmod_toeplitz_like_mul_nmod_vec_right(nmod_toeplitz_like_t a,
+                                           nn_ptr v, 
+                                           nn_ptr res);
+
+void nmod_toeplitz_like_mul(nmod_toeplitz_like_t a,
+                             nmod_toeplitz_like_t b, 
+                             nmod_toeplitz_like_t res);
+ 
+void nmod_toeplitz_like_inv(nmod_toeplitz_like_t a,
+                             nmod_toeplitz_like_t res);
+
+/* Generators */
+void nmod_toeplitz_like_reduce_gens(nmod_toeplitz_like_t mat);
 
 #endif 
