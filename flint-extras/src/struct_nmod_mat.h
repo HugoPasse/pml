@@ -178,6 +178,20 @@ void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
                              nmod_mat_lower_toeplitz_t* lower_generators,
                              nmod_mat_upper_toeplitz_t* upper_generators);
 
+void nmod_toeplitz_like_set_vec(nmod_toeplitz_like_t mat,
+                                 ulong ngens,
+                                 ulong rank,
+                                 nn_ptr* lower_generators,
+                                 nn_ptr* upper_generators);
+
+void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
+                                  ulong nrows,
+                                  ulong ncols,
+                                  ulong ngens,
+                                  ulong rank,
+                                  ulong N,
+                                  flint_rand_t state);
+
 // TODO is this relevant (too many arguments ?)
 //void nmod_toeplitz_like_init_set();
 void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat, 
