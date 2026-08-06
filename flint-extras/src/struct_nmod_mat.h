@@ -4,6 +4,7 @@
 #include "pml.h"
 #include <flint/nmod_mat.h>
 #include <flint/nmod_vec.h>
+#include <flint/nmod_poly.h>
 
 #ifdef STRUCT_NMOD_MAT_INLINES_C
 #define STRUCT_NMOD_MAT_INLINE
@@ -114,6 +115,13 @@ void nmod_mat_lower_toeplitz_init_set(nmod_mat_lower_toeplitz_t mat,
 void nmod_mat_lower_toeplitz_dense(nmod_mat_lower_toeplitz_t mat,
                                     nmod_mat_t res);
 
+void nmod_mat_lower_toeplitz_as_poly(nmod_mat_lower_toeplitz_t mat,
+                                      nmod_poly_t pol);
+
+void nmod_mat_lower_toeplitz_mul_nmod_vec(nmod_mat_lower_toeplitz_t mat,
+                                      nn_ptr v,
+                                      nn_ptr res);
+
 // TODO ADD GETTERS
 /* ---------------------------
  * Upper triangular Toeplitz matrices 
@@ -146,6 +154,13 @@ void nmod_mat_upper_toeplitz_init_set(nmod_mat_upper_toeplitz_t mat,
 
 void nmod_mat_upper_toeplitz_dense(nmod_mat_upper_toeplitz_t mat,
                                     nmod_mat_t res);
+
+void nmod_mat_upper_toeplitz_as_poly(nmod_mat_upper_toeplitz_t mat,
+                                      nmod_poly_t pol);
+
+void nmod_mat_upper_toeplitz_mul_nmod_vec(nmod_mat_upper_toeplitz_t mat,
+                                      nn_ptr v,
+                                      nn_ptr res);
 
 // This function return the entry (i,j) of the product lmat * umat
 ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
