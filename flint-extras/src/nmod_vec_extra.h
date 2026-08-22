@@ -20,26 +20,18 @@
  */
 
 #include <flint/flint.h>
-#include <flint/machine_vectors.h>
 #include <flint/nmod_types.h>
 #include <flint/nmod.h> // for NMOD_RED
+
+#if FLINT_HAVE_FFT_SMALL
+#  include <flint/machine_vectors.h>
+#endif
 
 #include "pml.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/** Random */
-
-/** Fills the entries `0`, .., `len-1` of vector with uniformly random entries.
- * Vector must already be allocated with length at least `len`. */
-/* TODO should be in FLINT soon: remove */
-void _nmod_vec_rand(nn_ptr vec,
-            		flint_rand_t state,
-            		slong len,
-            		nmod_t mod);
-
 
 /*--------------------------------------------------------------*/
 /* vector of n consecutive primes of exactly s bits             */
