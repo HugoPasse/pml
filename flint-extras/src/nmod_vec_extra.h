@@ -33,17 +33,6 @@
 extern "C" {
 #endif
 
-/** Random */
-
-/** Fills the entries `0`, .., `len-1` of vector with uniformly random entries.
- * Vector must already be allocated with length at least `len`. */
-/* TODO should be in FLINT soon: remove */
-void _nmod_vec_rand(nn_ptr vec,
-            		flint_rand_t state,
-            		slong len,
-            		nmod_t mod);
-
-
 /*--------------------------------------------------------------*/
 /* vector of n consecutive primes of exactly s bits             */
 /*--------------------------------------------------------------*/
