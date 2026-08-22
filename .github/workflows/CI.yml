@@ -312,6 +312,7 @@ jobs:
             CC=$(brew --prefix llvm)/bin/clang \
             --with-gmp=$(brew --prefix) \
             --with-mpfr=$(brew --prefix) \
+            --with-flint=/usr/local \
             --disable-debug
 
       - name: "Compile library"
