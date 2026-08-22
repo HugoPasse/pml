@@ -23,7 +23,7 @@
 #include <flint/nmod_types.h>
 #include <flint/nmod.h> // for NMOD_RED
 
-#if PML_HAVE_MACHINE_VECTORS
+#if FLINT_HAVE_FFT_SMALL
 #  include <flint/machine_vectors.h>
 #endif
 
