@@ -21,12 +21,12 @@ concurrency:
 
 jobs:
   ##############################################################################
-  # ubuntu 24.04, gcc, flint dev
+  # ubuntu 26.04, gcc, flint dev
   ##############################################################################
   ubuntu-gcc-flintdev:
-    name: Ubuntu 24.04, GCC, FLINT dev (x10)
+    name: Ubuntu 26.04, GCC, FLINT dev (x10)
 
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     env:
       CC: "gcc"
@@ -89,10 +89,10 @@ jobs:
         run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
 
   ##############################################################################
-  # ubuntu 24.04, clang, flint 3.4.0
+  # ubuntu 24.04, clang, flint dev
   ##############################################################################
-  ubuntu-clang-flint340:
-    name: Ubuntu 24.04, clang, FLINT 3.4.0 (x10)
+  ubuntu-clang-flintdev:
+    name: Ubuntu 24.04, clang, FLINT dev (x10)
 
     runs-on: ubuntu-24.04
 
@@ -121,8 +121,9 @@ jobs:
           libtool --version
           echo "MAKE=make -j$(expr $(nproc) + 1) --output-sync=target" >> $GITHUB_ENV
 
-          # install FLINT 3.4.0 version
-          git clone --depth=1 https://github.com/flintlib/flint.git --branch v3.4.0 --single-branch
+          # install FLINT dev version
+          # git clone --depth=1 https://github.com/flintlib/flint.git --branch v3.4.0 --single-branch
+          git clone --depth=1 https://github.com/flintlib/flint.git
           cd flint
           ./bootstrap.sh
           ./configure CC=${CC} --disable-debug
@@ -152,12 +153,12 @@ jobs:
         run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
 
   ##############################################################################
-  # ubuntu 24.04 ARM, gcc, flint dev
+  # ubuntu 26.04 ARM, gcc, flint dev
   ##############################################################################
-  ubuntu-gcc-flintdev-arm:
-    name: Ubuntu 24.04 ARM, GCC, FLINT dev (x5)
+  ubuntu-arm-gcc-flintdev:
+    name: Ubuntu 26.04 ARM, GCC, FLINT dev (x5)
 
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
 
     env:
       CC: "gcc"
@@ -216,11 +217,11 @@ jobs:
         run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
 
   ##############################################################################
-  # ubuntu 24.04 clang, flint dev, BLAS, ASan
+  # ubuntu 26.04 clang, flint dev, BLAS, ASan
   ##############################################################################
   ubuntu-asan-clang:
-    name: Ubuntu 24.04, clang, FLINT dev with BLAS, ASan (x1)
-    runs-on: ubuntu-24.04
+    name: Ubuntu 26.04, clang, FLINT dev with BLAS, ASan (x1)
+    runs-on: ubuntu-26.04
     env:
       CC: "clang"
       TESTCOEFF: "1"
@@ -259,10 +260,10 @@ jobs:
         run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
 
   ##############################################################################
-  # macos (M1), clang, homebrewed FLINT
+  # macos 15, clang, FLINT dev
   ##############################################################################
-  macos-m1-brewedflint:
-    name: macOS-M1, Clang, homebrewed FLINT (x3)
+  macos-15-flintdev:
+    name: macOS-15, Clang, FLINT dev (x3)
 
     runs-on: macos-15
 
@@ -286,11 +287,22 @@ jobs:
           brew install libtool
           brew install automake
           brew install llvm
-          brew install flint
           $(brew --prefix llvm)/bin/clang --version
           gmake --version
           autoconf --version
           echo "MAKE=gmake -j$(expr $(nproc) + 1) -l 10 --output-sync=target" >> $GITHUB_ENV
+
+          # install FLINT dev version
+          git clone --depth=1 https://github.com/flintlib/flint.git
+          cd flint
+          ./bootstrap.sh
+          ./configure \
+            CC=$(CC) \
+            --with-gmp=$(brew --prefix) \
+            --with-mpfr=$(brew --prefix) \
+            --disable-debug
+          $MAKE
+          sudo make install
 
       - name: "Configure"
         run: |
@@ -317,10 +329,10 @@ jobs:
 
 
   ##############################################################################
-  # macos (M1), gcc, flint-dev
+  # macos 15, gcc, flint-dev
   ##############################################################################
-  macos-m1-flintdev:
-    name: macOS-M1, gcc, flint-dev (x3)
+  macos-15-flintdev:
+    name: macOS-15, gcc, flint-dev (x3)
 
     runs-on: macos-15
 
