@@ -486,14 +486,6 @@ nmod_poly_mat_permute_columns(nmod_poly_mat_t mat,
 /** Computes a random polynomial vector `pvec` of length `n` and degree less
  * than `d`
  */
-// TODO vector version
-//void nmod_poly_vec_rand(nmod_poly_vec_t pvec, flint_rand_t state, slong len);
-
-/** Fills the polynomial matrix `pmat` with dense polynomials of length `len`
- * with coefficients taken uniformly at random.  */
-void nmod_poly_mat_rand(nmod_poly_mat_t mat,
-                        flint_rand_t state,
-                        slong len);
 
 /** Fills polynomial matrix `mat` with random dense polynomial entries such
  * that `mat[i,j] has length up to `rlen[i]` for all `i`. Assumes `rlen` has
