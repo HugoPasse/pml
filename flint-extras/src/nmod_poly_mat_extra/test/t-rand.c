@@ -12,6 +12,7 @@
 
 #include <flint/fmpz.h>
 #include <flint/fmpz_mat.h>
+#include <flint/nmod_poly_mat.h>
 #include <flint/test_helpers.h>
 
 #include "nmod_poly_mat_forms.h"
