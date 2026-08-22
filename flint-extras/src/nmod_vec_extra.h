@@ -20,9 +20,12 @@
  */
 
 #include <flint/flint.h>
-#include <flint/machine_vectors.h>
 #include <flint/nmod_types.h>
 #include <flint/nmod.h> // for NMOD_RED
+
+#if PML_HAVE_MACHINE_VECTORS
+#  include <flint/machine_vectors.h>
+#endif
 
 #include "pml.h"
 

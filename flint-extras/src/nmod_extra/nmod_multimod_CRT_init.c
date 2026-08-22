@@ -11,7 +11,9 @@
 */
 
 #include <flint/fmpz.h>
-#include <flint/machine_vectors.h>
+#if defined(PML_HAVE_MACHINE_VECTORS)
+# include <flint/machine_vectors.h>
+#endif
 
 #include "nmod_extra.h"
 
