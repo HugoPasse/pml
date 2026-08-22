@@ -13,7 +13,7 @@
 
 #include "nmod_extra.h"
 
-#if defined(PML_HAVE_MACHINE_VECTORS)
+#if PML_HAVE_MACHINE_VECTORS
 # include <flint/crt_helpers.h>
 # include "machine_vectors.h"
 
