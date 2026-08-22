@@ -1,6 +1,6 @@
 #include "nmod_poly_extra.h"
-#include "nmod_vec_extra.h"
 #include <flint/nmod_poly.h>
+#include <flint/nmod_vec.h>
 
 /*------------------------------------------------------------*/
 /*------------------------------------------------------------*/
