@@ -400,3 +400,149 @@ jobs:
       - name: "Check"
         run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
 
+
+  ##############################################################################
+  # macos 26, gcc, flint-dev
+  ##############################################################################
+  macos-26-flintdev:
+    name: macOS-26, gcc, flint-dev (x3)
+
+    runs-on: macos-26-intel
+
+    env:
+      TESTCOEFF: "3"
+
+    steps:
+      - name: "Rescale multiplier"
+        run: echo "FLINT_TEST_MULTIPLIER=$(echo "${TESTCOEFF} * ${GLOBAL_MULTIPLIER}" | bc)" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v6
+
+      - name: "Setup"
+        run: |
+          # GMP and MPFR are already installed, and it complains if we try to
+          # install it.
+          #   brew install gmp
+          #   brew install mpfr
+          brew install make
+          brew install autoconf
+          brew install libtool
+          brew install automake
+          gcc --version
+          gmake --version
+          autoconf --version
+          echo "MAKE=gmake -j$(expr $(nproc) + 1) -l 10 --output-sync=target" >> $GITHUB_ENV
+
+          # install FLINT dev version
+          git clone --depth=1 https://github.com/flintlib/flint.git
+          cd flint
+          ./bootstrap.sh
+          ./configure \
+            CC=$(CC) \
+            --with-gmp=$(brew --prefix) \
+            --with-mpfr=$(brew --prefix) \
+            --disable-debug
+          $MAKE
+          sudo make install
+
+      - name: "Configure"
+        run: |
+          cd flint-extras
+          ./bootstrap.sh
+          ./configure \
+            CC=$(CC) \
+            --with-gmp=$(brew --prefix) \
+            --with-mpfr=$(brew --prefix) \
+            --disable-debug
+
+      - name: "Compile library"
+        run: |
+          cd flint-extras
+          $MAKE
+
+      - name: "Compile tests"
+        run: |
+          cd flint-extras
+          $MAKE tests
+
+      - name: "Compile profile"
+        run: |
+          cd flint-extras
+          $MAKE profile
+
+      - name: "Check"
+        run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
+
+
+  ##############################################################################
+  # macos 26 arm64, gcc, flint-dev
+  ##############################################################################
+  macos-26-arm64-flintdev:
+    name: macOS-26 Arm64, gcc, flint-dev (x3)
+
+    runs-on: macos-26
+
+    env:
+      TESTCOEFF: "3"
+
+    steps:
+      - name: "Rescale multiplier"
+        run: echo "FLINT_TEST_MULTIPLIER=$(echo "${TESTCOEFF} * ${GLOBAL_MULTIPLIER}" | bc)" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v6
+
+      - name: "Setup"
+        run: |
+          # GMP and MPFR are already installed, and it complains if we try to
+          # install it.
+          #   brew install gmp
+          #   brew install mpfr
+          brew install make
+          brew install autoconf
+          brew install libtool
+          brew install automake
+          gcc --version
+          gmake --version
+          autoconf --version
+          echo "MAKE=gmake -j$(expr $(nproc) + 1) -l 10 --output-sync=target" >> $GITHUB_ENV
+
+          # install FLINT dev version
+          git clone --depth=1 https://github.com/flintlib/flint.git
+          cd flint
+          ./bootstrap.sh
+          ./configure \
+            CC=$(CC) \
+            --with-gmp=$(brew --prefix) \
+            --with-mpfr=$(brew --prefix) \
+            --disable-debug
+          $MAKE
+          sudo make install
+
+      - name: "Configure"
+        run: |
+          cd flint-extras
+          ./bootstrap.sh
+          ./configure \
+            CC=$(CC) \
+            --with-gmp=$(brew --prefix) \
+            --with-mpfr=$(brew --prefix) \
+            --disable-debug
+
+      - name: "Compile library"
+        run: |
+          cd flint-extras
+          $MAKE
+
+      - name: "Compile tests"
+        run: |
+          cd flint-extras
+          $MAKE tests
+
+      - name: "Compile profile"
+        run: |
+          cd flint-extras
+          $MAKE profile
+
+      - name: "Check"
+        run: cd flint-extras && echo "FLINT_TEST_MULTIPLIER = $FLINT_TEST_MULTIPLIER" && $MAKE check
+
