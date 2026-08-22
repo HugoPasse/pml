@@ -297,7 +297,7 @@ jobs:
           cd flint
           ./bootstrap.sh
           ./configure \
-            CC=$(CC) \
+            CC=$(brew --prefix llvm)/bin/clang \
             --with-gmp=$(brew --prefix) \
             --with-mpfr=$(brew --prefix) \
             --disable-debug
