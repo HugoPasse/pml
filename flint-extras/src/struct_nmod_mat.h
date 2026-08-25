@@ -170,6 +170,8 @@ ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
 
 /* ---------------------------
  * Toeplitz-like matrices
+ * Matrices such that M - Z_0 M Z_1^T = GH^T
+ * Can be reconstructed
  * --------------------------- */
 typedef struct
 {
@@ -207,6 +209,11 @@ void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
 
 // TODO is this relevant (too many arguments ?)
 //void nmod_toeplitz_like_init_set();
+
+// TODO This function is not correct : see example 4.4.1 of Bini Pan 2001 This
+// raises the question : implement Stein operator and Sylvester operator
+// matrices completely, code for mat*vec is nearly complete and would only need
+// a few modifications
 void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat, 
                                nmod_mat_t dense_mat);
 

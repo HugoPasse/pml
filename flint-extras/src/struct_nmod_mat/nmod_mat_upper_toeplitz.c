@@ -49,7 +49,7 @@ void nmod_mat_upper_toeplitz_mul_nmod_vec(nmod_mat_upper_toeplitz_t mat,
                                            nn_ptr v,
                                            nn_ptr res){
     nmod_poly_t pol;
-    nmod_mat_lower_toeplitz_as_poly(mat, pol);
+    nmod_mat_upper_toeplitz_as_poly(mat, pol);
         
     nmod_poly_t vx;
     nmod_poly_init(vx, mat->mod.n);
@@ -60,7 +60,7 @@ void nmod_mat_upper_toeplitz_mul_nmod_vec(nmod_mat_upper_toeplitz_t mat,
     nmod_poly_mulhigh(pol,pol,vx,k);
      
     for(int i=0; i<mat->nrows; i++){
-        res[k+i] = nmod_poly_get_coeff_ui(pol,i);
+        res[i] = nmod_poly_get_coeff_ui(pol,k+i);
     }
     nmod_poly_clear(pol);
     nmod_poly_clear(vx);

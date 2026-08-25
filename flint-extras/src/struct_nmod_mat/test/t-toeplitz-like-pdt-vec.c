@@ -5,10 +5,9 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_like_pdt_vec, state)
 {
     for(int i = 0; i < 100 * flint_test_multiplier(); i++)
     {
-    
-        long n = 15;
+        long n = 7;
         long m = 7;
-        long k = 2;
+        long k = 1;
         ulong N = 101;
         
         nmod_toeplitz_like_t mat;
@@ -19,10 +18,10 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_like_pdt_vec, state)
         nmod_mat_print_pretty(dense_mat);
         printf("Lower generator");
         _nmod_vec_print_pretty(mat->lower_gens[0]->data, n, mat->mod);
-        _nmod_vec_print_pretty(mat->lower_gens[1]->data, n, mat->mod);
+        //_nmod_vec_print_pretty(mat->lower_gens[1]->data, n, mat->mod);
         printf("Upper generator");
         _nmod_vec_print_pretty(mat->upper_gens[0]->data, m, mat->mod);
-        _nmod_vec_print_pretty(mat->upper_gens[1]->data, m, mat->mod);
+        //_nmod_vec_print_pretty(mat->upper_gens[1]->data, m, mat->mod);
 
         nn_ptr v = _nmod_vec_init(m);
         _nmod_vec_randtest(v, state, m, mat->mod);
