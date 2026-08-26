@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "struct_nmod_mat.h"
+#include "nmod_mat_struct.h"
 
 void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
                              ulong nrows,

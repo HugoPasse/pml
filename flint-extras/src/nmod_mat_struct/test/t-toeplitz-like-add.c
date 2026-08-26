@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "struct_nmod_mat.h"
+#include "nmod_mat_struct.h"
 
 TEST_FUNCTION_START(struct_nmod_toeplitz_like_add, state)
 {

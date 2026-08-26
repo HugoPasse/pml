@@ -1,4 +1,4 @@
-#include "struct_nmod_mat.h"
+#include "nmod_mat_struct.h"
 
 void nmod_mat_upper_toeplitz_init(nmod_mat_upper_toeplitz_t mat,
                                    ulong nrows,
