@@ -688,9 +688,6 @@ void nmod_mat_poly_mbasis_resupdate(nmod_mat_poly_t appbas,
  * and @ref nmod_mat_poly_mbasis_resupdate depending on the shape of `matp`
  * (`cdim > rdim/2` selects resupdate, since that is where its asymptotic
  * `n/(m-n)` advantage becomes worthwhile. 
- * Both variants always agree
- * bit-for-bit, so this dispatch is a pure timing decision, never a
- * correctness one.
  */
 
 void nmod_mat_poly_mbasis(nmod_mat_poly_t appbas,
