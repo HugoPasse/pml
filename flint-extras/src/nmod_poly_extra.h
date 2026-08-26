@@ -37,20 +37,6 @@ extern "C" {
  * */
 #define NMOD_POLY_CAN_USE_GEOMETRIC(modn, len) ((modn) >= UWORD(10) * (len))
 
-/** Generates random polynomial `pol` of length up to `len` with uniformly
- * random coefficients. If `len` is nonpositive, `pol` is set to zero. */
-void nmod_poly_rand(nmod_poly_t pol,
-                    flint_rand_t state,
-                    slong len);
-
-
-/** Generates random monic polynomial `pol` of length exactly `len` with
- * uniformly random coefficients. If `len` is nonpositive, `pol` is set to
- * zero. */
-void nmod_poly_rand_monic(nmod_poly_t pol,
-                          flint_rand_t state,
-                          slong len);
-
 #ifdef __cplusplus
 }
 #endif

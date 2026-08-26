@@ -11,9 +11,11 @@
 */
 
 #include <flint/fmpz.h>
-#include <flint/machine_vectors.h>
-
 #include "nmod_extra.h"
+
+#if FLINT_HAVE_FFT_SMALL
+# include <flint/machine_vectors.h>
+#endif
 
 /*------------------------------------------------------------*/
 /* initializes all data in C                                  */

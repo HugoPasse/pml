@@ -153,37 +153,6 @@ ulong nmod_vec_dot_product_unbalanced(nn_srcptr v1, nn_srcptr v2, ulong len, ulo
 /* EXPERIMENTAL */
 /*------------------------------------------------------------*/
 
-#if PML_HAVE_AVX512
-// dot product using single limb, avx512
-ulong _nmod_vec_dot_product_1_avx512(nn_srcptr vec1, nn_srcptr vec2, ulong len, nmod_t mod)
-{
-    // compute 4 vertical sub-dot products
-    __m512i res_vec = _mm512_setzero_si512();
-    ulong i;
-    for (i = 0; i+7 < len; i += 8)
-    {
-        // load + multiplication + addition
-        __m512i x = _mm512_loadu_si512((__m512i *) (vec1+i));
-        __m512i y = _mm512_loadu_si512((__m512i *) (vec2+i));
-        x = _mm512_mul_epu32(x, y);
-        res_vec = _mm512_add_epi64(res_vec, x);
-    }
-
-    // horizontal add
-    //ulong res = res_vec[0] + res_vec[1] + res_vec[2] + res_vec[3]
-              //+ res_vec[4] + res_vec[5] + res_vec[6] + res_vec[7];
-    ulong res = _mm512_reduce_add_epi64(res_vec);
-
-    // scalar loop for leftover entries
-    for (; i < len; ++i)
-        res += vec1[i] * vec2[i];
-    NMOD_RED(res, res, mod);
-
-    return res;
-}
-#endif  /* PML_HAVE_AVX512 */
-
-
 #define DOT_SPLITXX_BITS 26
 #define DOT_SPLITXX_MASK 0x3FFFFFF // (1L << DOT_SPLITXX_BITS) - 1
 
@@ -330,6 +299,3 @@ ulong _nmod_vec_dot_product_ifma512(nn_srcptr v1, nn_srcptr v2, ulong len, nmod_
 }
 
 #endif  /* PML_HAVE_AVX512 */
-
-/* -*- mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-// vim:sts=4:sw=4:ts=4:et:sr:cino=>s,f0,{0,g0,(0,\:0,t0,+0,=s

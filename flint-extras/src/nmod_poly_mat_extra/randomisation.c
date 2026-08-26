@@ -23,14 +23,6 @@
 /*------------------------------------------------------------*/
 /*------------------------------------------------------------*/
 
-void nmod_poly_mat_rand(nmod_poly_mat_t mat,
-                        flint_rand_t state,
-                        slong len)
-{
-    for (slong i = 0; i < mat->r * mat->c; i++)
-        nmod_poly_rand(mat->entries + i, state, len);
-}
-
 void nmod_poly_mat_rand_row_degree(nmod_poly_mat_t mat,
                                    flint_rand_t state,
                                    const slong * rlen)
@@ -88,12 +80,22 @@ void _nmod_poly_mat_rand_popov_row_lower(nmod_poly_mat_t mat,
                 dvec[pivind[ii]] = pivdeg[ii]-1;
         // random filling before pivot
         for (slong j = 0; j < pivind[i]; j++)
-            nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[j]);
+        {
+            if (1 + dvec[j] > 0)
+                nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[j]);
+            else
+                nmod_poly_zero(nmod_poly_mat_entry(mat, i, j));
+        }
         // add monic of pivot degree at pivot
         nmod_poly_rand_monic(nmod_poly_mat_entry(mat, i, pivind[i]), state, 1+pivdeg[i]);
         // random filling after pivot
         for (slong j = pivind[i]+1; j < mat->c; j++)
-            nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[j]);
+        {
+            if (1 + dvec[j] > 0)
+                nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[j]);
+            else
+                nmod_poly_zero(nmod_poly_mat_entry(mat, i, j));
+        }
     }
 
     flint_free(dvec);
@@ -122,12 +124,22 @@ void _nmod_poly_mat_rand_popov_col_upper(nmod_poly_mat_t mat,
                 dvec[pivind[jj]] = pivdeg[jj]-1;
         // random filling before pivot
         for (slong i = 0; i < pivind[j]; i++)
-            nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[i]);
+        {
+            if (1 + dvec[i] > 0)
+                nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[i]);
+            else
+                nmod_poly_zero(nmod_poly_mat_entry(mat, i, j));
+        }
         // add monic of pivot degree at pivot
         nmod_poly_rand_monic(nmod_poly_mat_entry(mat, pivind[j], j), state, 1+pivdeg[j]);
         // random filling after pivot
         for (slong i = pivind[j]+1; i < mat->r; i++)
-            nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[i]);
+        {
+            if (1 + dvec[i] > 0)
+                nmod_poly_rand(nmod_poly_mat_entry(mat, i, j), state, 1 + dvec[i]);
+            else
+                nmod_poly_zero(nmod_poly_mat_entry(mat, i, j));
+        }
     }
 
     flint_free(dvec);

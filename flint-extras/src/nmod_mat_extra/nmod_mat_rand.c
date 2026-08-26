@@ -10,12 +10,11 @@
     <https://www.gnu.org/licenses/>.
 */
 
-#include "nmod_vec_extra.h"
-#include "nmod_mat_extra.h"
 #include <flint/flint.h>
 #include <flint/nmod_mat.h>
 #include <flint/perm.h>
 #include <stdlib.h> // qsort
+#include "nmod_mat_extra.h"
 
 static int _slong_comparator(const void * a, const void * b)
 {
@@ -25,12 +24,6 @@ static int _slong_comparator(const void * a, const void * b)
         return 0;
     else // if ( *(slong *)a  >  *(slong *)b )
         return 1;
-}
-
-// uniform random
-void nmod_mat_rand(nmod_mat_t mat, flint_rand_t state)
-{
-    _nmod_vec_rand(mat->entries, state, mat->r * mat->c, mat->mod);
 }
 
 // random dense with specified rank
