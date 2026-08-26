@@ -626,18 +626,6 @@ Please report at <https://github.com/vneiger/pml/issues/>])
       bd4)      gcc_cflags_arch="-march=bdver4"; have_avx2="yes" ;;
       x86_64v3) gcc_cflags_arch="-march=x86-64-v3"; have_avx2="yes" ;;
       x86_64v4) gcc_cflags_arch="-march=x86-64-v4"; have_avx512="yes" ;;
-      *)
-        # Unrecognized/generic x86_64 codename -- e.g. a virtualized CI
-        # runner whose CPU config.guess can't map to one of the specific
-        # microarchitectures above. Previously this left gcc_cflags_arch
-        # empty, so NO -march flag was added at all; since FLINT's
-        # machine_vectors.h hard-requires __AVX2__ or __ARM_NEON (no
-        # scalar fallback), that surfaced as a confusing #error deep in
-        # an unrelated file instead of a sensible default here. Fall
-        # back to -march=native so the compiler detects the actual
-        # build host's capabilities directly, rather than relying on a
-        # fixed codename lookup table.
-        gcc_cflags_arch="-march=native" ;;
      esac
 
 
