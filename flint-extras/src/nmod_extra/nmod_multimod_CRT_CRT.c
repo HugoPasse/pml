@@ -11,10 +11,12 @@
     <https://www.gnu.org/licenses/>.
 */
 
-#include <flint/crt_helpers.h>
-
 #include "nmod_extra.h"
-#include "machine_vectors.h"
+
+/* this file requires machine vectors */
+#if PML_HAVE_MACHINE_VECTORS
+# include <flint/crt_helpers.h>
+# include "machine_vectors.h"
 
 /* ------------------------------------------------------------ */
 /* ------------------------------------------------------------ */
@@ -516,4 +518,4 @@ void nmod_multimod_CRT_CRT(nn_ptr out, nn_ptr *residues, ulong nb, nmod_multimod
         nmod_large_modulus_CRT(out, residues, nb, C);
 }
 
-
+#endif

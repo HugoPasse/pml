@@ -84,9 +84,6 @@ void nmod_mat_mul_pml(nmod_mat_t C, const nmod_mat_t A, const nmod_mat_t B)
 /* Uniform Random                                             */
 /*------------------------------------------------------------*/
 
-/** Fills matrix with uniformly random entries */
-void nmod_mat_rand(nmod_mat_t mat, flint_rand_t state);
-
 /** Combines Flint's `randrank` and `randops` functions to obtain a random
  * dense matrix `mat` having specified rank */
 void nmod_mat_randrank_dense(nmod_mat_t mat,
