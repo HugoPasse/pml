@@ -26,6 +26,8 @@
  *       weak Popov approximant basis (nmod_poly_mat_is_approximant_basis),
  *       independent of any implementation comparison.
  *
+ * FIXME next paragraph and corresponding code to be handled within issue 52
+ * 
  * Also includes an explicit, non-random order=0 regression case: a
  * pre-existing bug  left `nsbas`
  * uninitialized when order=0 (the main loop never runs), making the
