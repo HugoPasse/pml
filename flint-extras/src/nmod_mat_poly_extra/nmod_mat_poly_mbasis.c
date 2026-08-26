@@ -1,7 +1,6 @@
 /*
     Copyright (C) 2025 Vincent Neiger, Éric Schost
-    Copyright (C) 2026 Gilles Villard, 
-                  portions developed with the assistance of Claude (Anthropic, Sonnet 5).
+    Copyright (C) 2026 Gilles Villard
 
     This file is part of PML.
 
