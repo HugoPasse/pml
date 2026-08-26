@@ -643,10 +643,7 @@ void nmod_mat_poly_mbasis_rescomp(nmod_mat_poly_t appbas,
  * Assuming cubic matrix multiplication over the field, the third item costs
  * `O(m n (m-n) order^2 / 2)` operations -- a factor `n/(m-n)` cheaper than
  * rescomp's residual-recomputation cost, so this variant wins as `n`
- * approaches `m`. Measured 4-5x over rescomp at `n` close to `m`, fading to
- * ~1.1x right at the `n = m/2` crossover (see @ref nmod_mat_poly_mbasis for
- * the dispatch threshold, and the PR description for the full measured
- * table). Output is bit-for-bit identical to
+ * approaches `m`. Output is identical to
  * @ref nmod_mat_poly_mbasis_rescomp on identical input: both variants apply
  * the same row operations and the same nullspace pivot choice, only the
  * residual bookkeeping differs. */
