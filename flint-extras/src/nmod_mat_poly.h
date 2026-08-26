@@ -621,6 +621,7 @@ nmod_mat_poly_set_from_poly_mat(nmod_mat_poly_t matp, const nmod_poly_mat_t pmat
  * cubic matrix multiplication over the field. See @ref mbasis_resupdate for
  * a variant that is asymptotically cheaper when `n` is close to `m`. */
 
+  /* TODO improve efficiency when `deg(pmat) << order` */
 void nmod_mat_poly_mbasis_rescomp(nmod_mat_poly_t appbas,
                                   slong * shift,
                                   const nmod_mat_poly_t matp,
