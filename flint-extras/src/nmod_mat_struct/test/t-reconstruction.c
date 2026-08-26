@@ -20,6 +20,8 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_dense, state)
     struct_nmod_toeplitz_dense(mat,dense_mat);
 
     nmod_mat_print_pretty(dense_mat);
+    
+    nmod_mat_clear(dense_mat);
 
     TEST_FUNCTION_END(state);
 }

@@ -24,62 +24,65 @@ typedef struct
     ulong n; // Modulus TODO Remove this is useless because it is stored in "mod"
     nn_ptr data; // Entries [a_0,...,a_5]
     nmod_t mod;
-} struct_nmod_toeplitz_struct;
+} nmod_mat_toeplitz_struct;
 
-typedef struct_nmod_toeplitz_struct struct_nmod_toeplitz_t[1];
+typedef nmod_mat_toeplitz_struct nmod_mat_toeplitz_t[1];
 
 /* Initialization */
-void struct_nmod_toeplitz_init(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_init(nmod_mat_toeplitz_t mat,
                                 ulong nrows, 
                                 ulong ncols,
                                 ulong N);
 
-void struct_nmod_toeplitz_set(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_set(nmod_mat_toeplitz_t mat,
                                nn_ptr data);
 
-void struct_nmod_toeplitz_init_set(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_init_set(nmod_mat_toeplitz_t mat,
                                     ulong nrows, 
                                     ulong ncols,
                                     ulong N,
                                     nn_ptr data);
     
 /* Getters */
-ulong struct_nmod_toeplitz_nrows(struct_nmod_toeplitz_t mat);
-ulong struct_nmod_toeplitz_ncols(struct_nmod_toeplitz_t mat);
+ulong nmod_mat_toeplitz_nrows(nmod_mat_toeplitz_t mat);
+ulong nmod_mat_toeplitz_ncols(nmod_mat_toeplitz_t mat);
 
 STRUCT_NMOD_MAT_INLINE
-ulong *struct_nmod_toeplitz_get_entry(struct_nmod_toeplitz_t mat, ulong i, ulong j){
+ulong *nmod_mat_toeplitz_get_entry(nmod_mat_toeplitz_t mat, ulong i, ulong j){
     return &mat->data[mat->ncols - 1 + i - j];
 }
 
 /* Computes the dense representation of a Toeplitz matrix */
-void struct_nmod_toeplitz_dense(struct_nmod_toeplitz_t mat, 
+void nmod_mat_toeplitz_dense(nmod_mat_toeplitz_t mat, 
                                   nmod_mat_t dense_mat);
 
 /* Computes the sum of two Toeplitz matrices */
-void struct_nmod_toeplitz_add(struct_nmod_toeplitz_t a,
-                               struct_nmod_toeplitz_t b, 
-                               struct_nmod_toeplitz_t res);
+void nmod_mat_toeplitz_add(nmod_mat_toeplitz_t a,
+                               nmod_mat_toeplitz_t b, 
+                               nmod_mat_toeplitz_t res);
 
 /* Computes the matrix-vector product with a Toeplitz matrix */
-void struct_nmod_toeplitz_right_mul_vec(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_right_mul_vec(nmod_mat_toeplitz_t mat,
                                     nn_ptr v,
                                     nn_ptr res);
 
 /* Computes the matrix-matrix product between a Toeplitz matrix and a dense matrix */
-void struct_nmod_toeplitz_right_mul_mat(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_right_mul_mat(nmod_mat_toeplitz_t mat,
                                     nmod_mat_t b,
                                     nmod_mat_t res);
 
 /* Computes the vector-matrix product with a Toeplitz matrix */
-void struct_nmod_toeplitz_left_mul_vec(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_left_mul_vec(nmod_mat_toeplitz_t mat,
                                     nn_ptr v,
                                     nn_ptr res);
 
 /* Computes the matrix-matrix product between a dense matrix and a Toeplitz matrix */
-void struct_nmod_toeplitz_left_mul_mat(struct_nmod_toeplitz_t mat,
+void nmod_mat_toeplitz_left_mul_mat(nmod_mat_toeplitz_t mat,
                                     nmod_mat_t b,
                                     nmod_mat_t res);
+
+/* Clears the matrix and releases any memory it used */
+void nmod_mat_toeplitz_clear(nmod_mat_toeplitz_t mat);
 
 
 // TODO ADD GETTERS
