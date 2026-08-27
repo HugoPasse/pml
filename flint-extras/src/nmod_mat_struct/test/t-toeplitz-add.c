@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "nmod_mat_struct.h"
 
-TEST_FUNCTION_START(struct_nmod_toeplitz_add, state)
+TEST_FUNCTION_START(nmod_mat_toeplitz_add, state)
 {
     for(int i = 0; i < 100 * flint_test_multiplier(); i++)
     {
@@ -10,7 +10,7 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_add, state)
         long m = n_randtest_bits(state,6);
         ulong N = n_randtest_prime(state, 1);
         
-        struct_nmod_toeplitz_t mat1, mat2;
+        nmod_mat_toeplitz_t mat1, mat2;
         nn_ptr data1 = _nmod_vec_init(n+m-1);
         nn_ptr data2 = _nmod_vec_init(n+m-1);
 
@@ -19,17 +19,17 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_add, state)
         _nmod_vec_randtest(data1, state, n+m-1, mod); 
         _nmod_vec_randtest(data2, state, n+m-1, mod); 
 
-        struct_nmod_toeplitz_init_set(mat1, n, m, N, data1);        
-        struct_nmod_toeplitz_init_set(mat2, n, m, N, data2);        
+        nmod_mat_toeplitz_init_set(mat1, n, m, N, data1);        
+        nmod_mat_toeplitz_init_set(mat2, n, m, N, data2);        
         
         // Structured part
-        struct_nmod_toeplitz_t res_struct;
-        struct_nmod_toeplitz_init(res_struct,n,m,N);
-        struct_nmod_toeplitz_add(mat1, mat2, res_struct);
+        nmod_mat_toeplitz_t res_struct;
+        nmod_mat_toeplitz_init(res_struct,n,m,N);
+        nmod_mat_toeplitz_add(mat1, mat2, res_struct);
 
         nmod_mat_t res_struct_dense;
         nmod_mat_init(res_struct_dense,n,m,N);
-        struct_nmod_toeplitz_dense(res_struct, res_struct_dense);
+        nmod_mat_toeplitz_dense(res_struct, res_struct_dense);
         
 
         // ---Dense part
@@ -37,8 +37,8 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_add, state)
         nmod_mat_t dense_mat1, dense_mat2;
         nmod_mat_init(dense_mat1,n,m,N);
         nmod_mat_init(dense_mat2,n,m,N);
-        struct_nmod_toeplitz_dense(mat1,dense_mat1);
-        struct_nmod_toeplitz_dense(mat2,dense_mat2);
+        nmod_mat_toeplitz_dense(mat1,dense_mat1);
+        nmod_mat_toeplitz_dense(mat2,dense_mat2);
         
         // Result
         nmod_mat_t res_dense;

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "nmod_mat_struct.h"
 
-TEST_FUNCTION_START(struct_nmod_toeplitz_like_pdt_vec, state)
+TEST_FUNCTION_START(nmod_mat_toeplitz_like_pdt_vec, state)
 {
     for(int i = 0; i < 100 * flint_test_multiplier(); i++)
     {

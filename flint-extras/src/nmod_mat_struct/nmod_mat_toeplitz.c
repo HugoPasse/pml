@@ -1,7 +1,14 @@
 #include "nmod_mat_struct.h"
+#include "nmod_poly_mat_approximant.h"
 
+#include <flint/nmod_mat.h>
+#include <stdlib.h>
+
+#include <flint/flint.h>
+#include <flint/nmod_types.h>
 #include <flint/nmod_vec.h>
 #include <flint/nmod_poly.h>
+#include <flint/nmod_poly_mat.h>
 
 void nmod_mat_toeplitz_init(nmod_mat_toeplitz_t mat, 
                                 ulong nrows, 
@@ -31,6 +38,17 @@ void nmod_mat_toeplitz_init_set(nmod_mat_toeplitz_t mat,
     nmod_mat_toeplitz_set(mat, data);
 }
 
+
+void nmod_mat_toeplitz_randtest(nmod_mat_toeplitz_t mat,
+                                  ulong nrows,
+                                  ulong ncols,
+                                  ulong N,
+                                  flint_rand_t state){
+
+    nmod_mat_toeplitz_init(mat, nrows, ncols, N);
+    _nmod_vec_randtest(mat->data, state, mat->ncols + mat->nrows - 1, mat->mod);
+}
+
 void nmod_mat_toeplitz_clear(nmod_mat_toeplitz_t mat){
     if(mat->data){
         flint_free(mat->data);
@@ -43,6 +61,15 @@ ulong nmod_mat_toeplitz_nrows(nmod_mat_toeplitz_t mat){
 
 ulong nmod_mat_toeplitz_ncols(nmod_mat_toeplitz_t mat){
     return mat->ncols;
+}
+
+void nmod_mat_toeplitz_as_poly(nmod_mat_toeplitz_t mat,
+                                nmod_poly_t pol){
+    int len = mat->nrows+mat->ncols-1;
+    nmod_poly_init2(pol, mat->mod.n, len);
+    _nmod_vec_set(pol->coeffs, mat->data, len); 
+    pol->length = len;
+    _nmod_poly_normalise(pol);
 }
 
 void nmod_mat_toeplitz_dense(nmod_mat_toeplitz_t mat,
@@ -106,4 +133,66 @@ void nmod_mat_toeplitz_left_mul_mat(nmod_mat_toeplitz_t mat,
                                     nmod_mat_t b,
                                     nmod_mat_t res){
     // TODO result matrix indexed in row major order -> copy directly there    
+}
+
+
+// WARNING: The code here asssumes that the toeplitz matrix is full rank. 
+// The issue is that nmod_poly_mat_pmbasis wants appbas allocated with right sizes, 
+// i.e. we need a priori knowledge of the rank
+// Possible FIX : allocate too many rows for appbas and check a posteriori each row of the basis
+void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
+                                           nmod_mat_t res){
+    slong order = mat->nrows + mat->ncols - 1; 
+    int r = mat->ncols - mat->nrows; 
+    
+    /* Constructing the polynomial matrix [[T(x)],[-1]] */
+    // Start with the two entries
+    nmod_poly_t pol, minus_one;
+    nmod_mat_toeplitz_as_poly(mat, pol);
+
+    nmod_poly_init(minus_one, mat->mod.n);
+    nmod_poly_zero(minus_one);
+    nmod_poly_set_coeff_ui(minus_one, 0, mat->mod.n-1);
+    
+    // Set polynomial matrix entries
+    nmod_poly_mat_t pmat;
+    nmod_poly_mat_init(pmat, 2, 1, mat->mod.n);
+    nmod_poly_set(nmod_poly_mat_entry(pmat, 0, 0), pol);
+    nmod_poly_set(nmod_poly_mat_entry(pmat, 1, 0), minus_one);
+    
+    /* We know compute an approximant basis of (pmat,order) in (ncols,ncols)-popov_form */
+    nmod_poly_mat_t appbas;
+    nmod_poly_mat_init(appbas, r, 2, mat->mod.n);
+    slong* shifts = malloc(2*sizeof(slong));
+    shifts[0] = 0;
+    shifts[1] = 0;
+
+    nmod_poly_mat_pmbasis(appbas, shifts, pmat, order);
+
+    for (int i=0; i<r; i++) {
+        for (int j=0; j<mat->ncols; j++) {
+            nmod_mat_set_entry(res, j, i, nmod_poly_get_coeff_ui(nmod_poly_mat_entry(appbas, i, 0), j));   
+        }
+    }
+    flint_printf("Result: ");
+    nmod_mat_print_pretty(res);
+    //nmod_poly_mat_t tmp;
+    //nmod_poly_mat_init(tmp, 2, 1, mat->mod.n);
+    //nmod_poly_mat_mul(tmp, appbas, pmat);
+    //nmod_poly_mat_print(tmp, print_pmat);
+
+    /* Debug */ 
+    flint_printf("Order: %d\n",order);
+    char* print_pmat = malloc(1000 * sizeof(char));
+    flint_printf("Poly matrix : ");
+    nmod_poly_mat_print(pmat, print_pmat);
+    flint_printf("Approximant basis : ");
+    nmod_poly_mat_print(appbas, print_pmat);
+    nmod_poly_clear(pol);
+}
+
+void nmod_mat_toeplitz_solve_right(nmod_mat_toeplitz_t mat,
+                                    nmod_mat_t b,
+                                    nmod_mat_t res){
+
 }

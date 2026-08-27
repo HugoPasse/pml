@@ -1,8 +1,8 @@
 #ifndef __STRUCT_NMOD_MAT__H
 #define __STRUCT_NMOD_MAT__H
 
-#include "pml.h"
 #include <flint/nmod_mat.h>
+#include <flint/nmod_types.h>
 #include <flint/nmod_vec.h>
 #include <flint/nmod_poly.h>
 
@@ -43,6 +43,12 @@ void nmod_mat_toeplitz_init_set(nmod_mat_toeplitz_t mat,
                                     ulong N,
                                     nn_ptr data);
     
+void nmod_mat_toeplitz_randtest(nmod_mat_toeplitz_t mat,
+                                  ulong nrows,
+                                  ulong ncols,
+                                  ulong N,
+                                  flint_rand_t state);
+
 /* Getters */
 ulong nmod_mat_toeplitz_nrows(nmod_mat_toeplitz_t mat);
 ulong nmod_mat_toeplitz_ncols(nmod_mat_toeplitz_t mat);
@@ -51,6 +57,10 @@ STRUCT_NMOD_MAT_INLINE
 ulong *nmod_mat_toeplitz_get_entry(nmod_mat_toeplitz_t mat, ulong i, ulong j){
     return &mat->data[mat->ncols - 1 + i - j];
 }
+
+/* Convert to polynomial representation */
+void nmod_mat_toeplitz_as_poly(nmod_mat_toeplitz_t mat,
+                                nmod_poly_t pol);
 
 /* Computes the dense representation of a Toeplitz matrix */
 void nmod_mat_toeplitz_dense(nmod_mat_toeplitz_t mat, 
@@ -78,6 +88,15 @@ void nmod_mat_toeplitz_left_mul_vec(nmod_mat_toeplitz_t mat,
 
 /* Computes the matrix-matrix product between a dense matrix and a Toeplitz matrix */
 void nmod_mat_toeplitz_left_mul_mat(nmod_mat_toeplitz_t mat,
+                                    nmod_mat_t b,
+                                    nmod_mat_t res);
+
+/* Computes the right kernel of the matrix, {v | Mv = 0} */
+void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
+                                           nmod_mat_t res);
+
+/* Solves the system Mv = b and stores v in res */
+void nmod_mat_toeplitz_solve_right(nmod_mat_toeplitz_t mat,
                                     nmod_mat_t b,
                                     nmod_mat_t res);
 

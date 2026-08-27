@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "nmod_mat_struct.h"
 
-TEST_FUNCTION_START(struct_nmod_toeplitz_mul_mat, state)
+TEST_FUNCTION_START(nmod_mat_toeplitz_mul_mat, state)
 {
     for(int i = 0; i < 100 * flint_test_multiplier(); i++)
     {
@@ -11,14 +11,14 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_mul_mat, state)
         long l = n_randtest_bits(state,5);
         ulong N = n_randtest_prime(state, 1);
         
-        struct_nmod_toeplitz_t mat;
+        nmod_mat_toeplitz_t mat;
         nn_ptr data = _nmod_vec_init(n+m-1);
         
         nmod_t mod;
         nmod_init(&mod,N);
         _nmod_vec_randtest(data, state, n+m-1, mod); 
 
-        struct_nmod_toeplitz_init_set(mat, n, m, N, data);        
+        nmod_mat_toeplitz_init_set(mat, n, m, N, data);        
         
         // vector to multiply
         nmod_mat_t b;
@@ -28,13 +28,13 @@ TEST_FUNCTION_START(struct_nmod_toeplitz_mul_mat, state)
         // structured part
         nmod_mat_t res_struct;
         nmod_mat_init(res_struct,n,l,N);
-        struct_nmod_toeplitz_right_mul_mat(mat,b,res_struct); 
+        nmod_mat_toeplitz_right_mul_mat(mat,b,res_struct); 
 
         // ---Dense part
         // Init 
         nmod_mat_t dense_mat;
         nmod_mat_init(dense_mat,n,m,N);
-        struct_nmod_toeplitz_dense(mat,dense_mat);
+        nmod_mat_toeplitz_dense(mat,dense_mat);
         
         // Result
         nmod_mat_t res_dense;
