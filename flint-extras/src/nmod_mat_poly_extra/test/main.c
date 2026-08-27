@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2025 Vincent Neiger, Éric Schost, Gilles Villard
+    Copyright (C) 2026 Vincent Neiger, Éric Schost, Gilles Villard
 
     This file is part of PML.
 
@@ -12,7 +12,6 @@
 
 /* Include functions *********************************************************/
 
-#include "testing_collection.h"
 
 #include "t-mbasis_variants.c"
 
