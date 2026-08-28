@@ -423,7 +423,8 @@ AC_MSG_CHECKING([use of maple])
 AC_ARG_WITH(maplec,
 [AS_HELP_STRING([--with-maplec=DIR], [Maple include directory])],
 AC_MSG_RESULT([yes])
-CPPFLAGS="$CPPFLAGS -I$withval/include"
+#CPPFLAGS="$CPPFLAGS -I$withval/include"
+CPPFLAGS="$CPPFLAGS -isystem $withval/include" 
 maple_include_path="$withval", AC_MSG_RESULT([no])
 )
 
@@ -625,7 +626,8 @@ Please report at <https://github.com/vneiger/pml/issues/>])
       bd4)      gcc_cflags_arch="-march=bdver4"; have_avx2="yes" ;;
       x86_64v3) gcc_cflags_arch="-march=x86-64-v3"; have_avx2="yes" ;;
       x86_64v4) gcc_cflags_arch="-march=x86-64-v4"; have_avx512="yes" ;;
-    esac
+     esac
+
 
     # We cannot be sure that AVX2 and AVX512 are enabled.
     if test "$cflags_set" = "yes";

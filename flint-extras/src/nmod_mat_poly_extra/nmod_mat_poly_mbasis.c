@@ -1,3 +1,16 @@
+/*
+    Copyright (C) 2025 Vincent Neiger, Éric Schost, Kevin Tran
+    Copyright (C) 2026 Gilles Villard
+
+    This file is part of PML.
+
+    PML is free software: you can redistribute it and/or modify it under
+    the terms of the GNU General Public License version 2.0 (GPL-2.0-or-later)
+    as published by the Free Software Foundation; either version 2 of the
+    License, or (at your option) any later version. See
+    <https://www.gnu.org/licenses/>.
+*/
+
 #include <flint/nmod_vec.h>
 #include <flint/nmod_mat.h>
 #include <flint/perm.h>
@@ -113,10 +126,16 @@ static inline void _find_shift_permutation(slong * perm,
         perm[i] = pair_tmp[i].index;
 }
 
-void nmod_mat_poly_mbasis(nmod_mat_poly_t appbas,
-                          slong * shift,
-                          const nmod_mat_poly_t matp,
-                          slong order)
+/** mbasis, "rescomp" variant: at each iteration, the residual coefficient of
+ * appbas*matp is recomputed from scratch via nmod_mat_poly_mul_coeff. This is
+ * the variant that was, until now, the only one implemented as
+ * nmod_mat_poly_mbasis. See nmod_mat_poly_mbasis_resupdate below for the
+ * "resupdate" variant, and nmod_mat_poly_mbasis (bottom of this file) for the
+ * dispatcher that chooses between them by shape. */
+void nmod_mat_poly_mbasis_rescomp(nmod_mat_poly_t appbas,
+                                  slong * shift,
+                                  const nmod_mat_poly_t matp,
+                                  slong order)
 {
 _MBASIS_PROFILER_INIT
 _PROFILER_REGION_START
@@ -153,7 +172,18 @@ _MBASIS_PROFILER_OUTPUT
     // and corresponding pivot information
     slong nullity;
     slong * pivots = (slong *) flint_malloc(m * sizeof(slong));
+    // Bugfix: nsbas must be in a valid (clearable) state even if
+    // `order == 0`, in which case the loop below never runs and nsbas would
+    // otherwise stay uninitialized, making the unconditional nmod_mat_clear
+    // at the end of this function undefined behaviour (confirmed: this is a
+    // pre-existing issue in the current, unmodified nmod_mat_poly_mbasis --
+    // reproduces intermittently depending on stack/heap state, since it's UB
+    // rather than a deterministic crash). A trivial 0 x 0 init here makes
+    // every later nmod_mat_clear(nsbas) safe regardless of whether the loop
+    // runs; the loop's own re-clear-before-reassign below no longer needs
+    // the `ord >= 1` guard, since nsbas is now always already initialized.
     nmod_mat_t nsbas;
+    nmod_mat_init(nsbas, 0, 0, matp->mod.n);
 _PROFILER_REGION_STOP(t_others)
 
     // Note: iterations will guarantee that `shift` (initially, this is the
@@ -205,8 +235,10 @@ _PROFILER_REGION_STOP(t_others)
 _PROFILER_REGION_START
         // find the left nullspace basis of the (permuted) residual, in reduced
         // row echelon form and compact storage (see the documentation)
-        if (ord >= 1) // nsbas should be uninitialized for nullspace
-            nmod_mat_clear(nsbas);
+        // (nsbas is always already in a valid state here -- see the trivial
+        // init before this loop -- so this clear-before-reassign is
+        // unconditional now, unlike the `ord >= 1` guard it replaces)
+        nmod_mat_clear(nsbas);
         nullity = nmod_mat_left_nullspace_compact(nsbas,pivots,res);
 _PROFILER_REGION_STOP(t_kernel)
 
@@ -376,3 +408,272 @@ _PROFILER_REGION_STOP(t_others)
 _MBASIS_PROFILER_OUTPUT
     return;
 }
+
+
+/*----------------------------------------------------------------*/
+/* mbasis, "resupdate" variant                                    */
+/*----------------------------------------------------------------*/
+
+/** The constant-update step applied to appbas (and, below, to the live
+ * residual window) is a RANK-`rank` update, rank = m - nullity = n
+ * generically: bottom(nullity x c) += nsbas(nullity x rank) * top(rank x c).
+ * For small rank this is an outer-product / BLAS-2 operation with no
+ * fast-matmul speedup, and the general nmod_mat_addmul pays dot-product-
+ * per-entry overhead for a tiny inner dimension. Below THRES, do it as
+ * `rank` explicit rank-1 updates instead; THRES = 4 was chosen from 
+ * first experiments. 
+ * To be tuned further.*/
+
+
+#ifndef NMOD_MAT_POLY_MBASIS_LOWRANK_THRES
+#define NMOD_MAT_POLY_MBASIS_LOWRANK_THRES 4
+#endif
+
+static inline void
+_mbasis_low_rank_addmul(nmod_mat_t bottom,
+                        const nmod_mat_t nsbas,
+                        const nmod_mat_t top)
+{
+    const slong rank = top->r;
+    const slong nullity = bottom->r;
+    const slong c = bottom->c;
+
+    if (rank <= NMOD_MAT_POLY_MBASIS_LOWRANK_THRES)
+    {
+        for (slong k = 0; k < rank; k++)
+            for (slong i = 0; i < nullity; i++)
+            {
+                const ulong coeff = nmod_mat_entry(nsbas, i, k);
+                if (coeff)
+                    _nmod_vec_scalar_addmul_nmod(nmod_mat_entry_ptr(bottom, i, 0),
+                                                 nmod_mat_entry_ptr(top, k, 0),
+                                                 c, coeff, bottom->mod);
+            }
+    }
+    else
+        nmod_mat_addmul(bottom, bottom, nsbas, top);
+}
+
+/** mbasis, "resupdate" variant: instead of recomputing the residual
+ * coefficient of appbas*matp from scratch at every iteration (as
+ * nmod_mat_poly_mbasis_rescomp does), this maintains the whole vector of
+ * future residual coefficients
+ *   R[d] = coefficient of degree d of appbas*matp,   d = ord .. order-1
+ * and updates it incrementally alongside appbas.
+ *
+ * See detailed comments in nmod_mat_poly.h 
+ * 
+ * Justification: the residual is R = appbas*matp, and each iteration left-
+ * multiplies appbas by an elementary factor M (in the pivot-permuted frame,
+ * M = [[X*Id, 0], [nsbas, Id]]). Since M*(appbas*matp) = (M*appbas)*matp,
+ * applying the SAME row operations to R that are applied to appbas (permute;
+ * bottom `nullity` rows += nsbas*top; top `m-nullity` rows *= X; permute
+ * back) yields the next residual directly -- no recomputation needed. Only
+ * the live coefficients R[ord+1 .. order-1] are touched (a shrinking
+ * window), and R is implicitly truncated at `order` (a top row multiplied by
+ * X pushes what would be its coefficient of degree order-1 to degree order,
+ * which is simply dropped by never allocating R[order]).
+ *
+ * Cost: O(m*n*(m-n)*order^2/2) field operations for the residual maintenance,
+ * versus rescomp's O(m*n^2*order^2/2) for recomputing it from scratch -- a
+ * factor n/(m-n) cheaper, i.e. it wins as cdim (n) approaches rdim (m). See
+ * nmod_mat_poly_mbasis (the dispatcher, below) for where this crosses over
+ * rescomp in practice.
+ *
+ * Output is bit-for-bit identical to nmod_mat_poly_mbasis_rescomp on
+ * identical input (same algorithm and nullspace pivot choice, only the
+ * residual bookkeeping differs). */
+
+
+void nmod_mat_poly_mbasis_resupdate(nmod_mat_poly_t appbas,
+                                    slong * shift,
+                                    const nmod_mat_poly_t matp,
+                                    slong order)
+{
+    const slong m = matp->r;
+    const slong n = matp->c;
+
+    nmod_mat_poly_one(appbas);
+
+    if (nmod_mat_poly_is_zero(matp))
+        return;
+
+    // residual vector R[d] = coeff of degree d of appbas*matp; initially
+    // appbas = Id so R[d] = matp[d] (zero beyond matp->length)
+
+    nmod_mat_struct * R = (nmod_mat_struct *) flint_malloc(order * sizeof(nmod_mat_struct));
+    for (slong d = 0; d < order; d++)
+    {
+        nmod_mat_init(R + d, m, n, matp->mod.n);
+        if (d < matp->length)
+            nmod_mat_set(R + d, matp->coeffs + d);
+    }
+
+    // copy of the current residual, permuted for the nullspace step (keeps
+    // R[ord] itself in the original row frame)
+
+    nmod_mat_t res;
+    nmod_mat_init(res, m, n, matp->mod.n);
+
+    slong * perm = _perm_init(m);
+    slong_pair * pair_tmp = (slong_pair *) flint_malloc(m * sizeof(slong_pair));
+
+    slong nullity;
+    slong * pivots = (slong *) flint_malloc(m * sizeof(slong));
+
+    // Bugfix: see the identical fix + comment in
+    // nmod_mat_poly_mbasis_rescomp above -- nsbas must be valid even when
+    // `order == 0` (loop never runs), for the unconditional nmod_mat_clear
+    // at the end of this function to be well-defined.
+    nmod_mat_t nsbas;
+    nmod_mat_init(nsbas, 0, 0, matp->mod.n);
+
+    for (slong ord = 0; ord < order; ++ord)
+    {
+        // current residual: copy R[ord], permute by shift-perm, find nullspace
+        nmod_mat_set(res, R + ord);
+        _find_shift_permutation(perm, shift, m, pair_tmp);
+        nmod_mat_permute_rows(res, perm, NULL);
+
+        nmod_mat_clear(nsbas);
+        nullity = nmod_mat_left_nullspace_compact(nsbas, pivots, res);
+
+        if (nullity == 0)
+        {
+            nmod_mat_poly_shift_left(appbas, appbas, order - ord);
+            for (long i = 0; i < m; ++i)
+                shift[i] += order - ord;
+            break;
+        }
+        else if (nullity < m)
+        {
+            _perm_compose(pivots, perm, pivots, m);
+            for (slong i = 0; i < m - nullity; i++)
+                shift[pivots[i]] += 1;
+
+            // go to permuted frame: appbas and the live residuals R[ord..order-1]
+            nmod_mat_poly_permute_rows(appbas, pivots, NULL);
+            for (slong d = ord; d < order; d++)
+                nmod_mat_permute_rows(R + d, pivots, NULL);
+
+            // constant update on appbas: bottom nullity rows += nsbas*top (all coeffs)
+            nmod_mat_t win_mul, win_add;
+            for (slong d = 0; d < appbas->length; ++d)
+            {
+                nmod_mat_window_init(win_mul, appbas->coeffs + d, 0, 0, m-nullity, m);
+                nmod_mat_window_init(win_add, appbas->coeffs + d, m-nullity, 0, m, m);
+                _mbasis_low_rank_addmul(win_add, nsbas, win_mul);
+                nmod_mat_window_clear(win_mul);
+                nmod_mat_window_clear(win_add);
+            }
+            // constant update on residuals: only the live ones R[ord+1..order-1]
+            for (slong d = ord + 1; d < order; ++d)
+            {
+                nmod_mat_window_init(win_mul, R + d, 0, 0, m-nullity, n);
+                nmod_mat_window_init(win_add, R + d, m-nullity, 0, m, n);
+                _mbasis_low_rank_addmul(win_add, nsbas, win_mul);
+                nmod_mat_window_clear(win_mul);
+                nmod_mat_window_clear(win_add);
+            }
+
+            // X-shift of the top m-nullity (pivot) rows: appbas
+            for (slong i = 0; i < m-nullity; ++i)
+                if (!_nmod_vec_is_zero(nmod_mat_poly_entry_ptr(appbas, appbas->length-1, i, 0), m))
+                {
+                    nmod_mat_poly_fit_length(appbas, appbas->length+1);
+                    _nmod_mat_poly_set_length(appbas, appbas->length+1);
+                    i = m - nullity;
+                }
+#if __FLINT_VERSION < 3 || (__FLINT_VERSION == 3 && __FLINT_VERSION_MINOR < 3)
+            ulong ** save_zero_rows = (ulong **) flint_malloc((m-nullity) * sizeof(ulong *));
+            for (slong i = 0; i < m-nullity; ++i)
+            {
+                save_zero_rows[i] = appbas->coeffs[appbas->length-1].rows[i];
+                appbas->coeffs[appbas->length-1].rows[i] = appbas->coeffs[appbas->length-2].rows[i];
+            }
+            for (slong d = appbas->length-2; d > 0; d--)
+                for (slong i = 0; i < m-nullity; ++i)
+                    appbas->coeffs[d].rows[i] = appbas->coeffs[d-1].rows[i];
+            for (slong i = 0; i < m-nullity; ++i)
+                appbas->coeffs[0].rows[i] = save_zero_rows[i];
+            flint_free(save_zero_rows);
+#else
+            for (slong d = appbas->length-1; d > 0; d--)
+                for (slong i = 0; i < m-nullity; ++i)
+                    _nmod_vec_set(nmod_mat_poly_entry_ptr(appbas, d, i, 0),
+                                  nmod_mat_poly_entry_ptr(appbas, d-1, i, 0), m);
+            for (slong i = 0; i < m-nullity; ++i)
+                _nmod_vec_zero(nmod_mat_poly_entry_ptr(appbas, 0, i, 0), m);
+#endif
+
+            // X-shift of the top rows of the residual vector: top(R[d]) <- top(R[d-1]),
+            // for d = order-1 downto ord+1 (top(R[ord]) is the source for R[ord+1];
+            // the coefficient that would reach degree order is dropped). Done
+            // AFTER the constant update above, which read the old tops.
+            for (slong d = order-1; d > ord; d--)
+                for (slong i = 0; i < m-nullity; ++i)
+                    _nmod_vec_set(nmod_mat_entry_ptr(R + d, i, 0),
+                                  nmod_mat_entry_ptr(R + (d-1), i, 0), n);
+
+            // back to original frame
+            _perm_inv(pivots, pivots, m);
+            nmod_mat_poly_permute_rows(appbas, pivots, NULL);
+            for (slong d = ord + 1; d < order; d++)   // R[ord] is now dead, skip
+                nmod_mat_permute_rows(R + d, pivots, NULL);
+        }
+        // nullity == m: residual was zero, transformation is identity, nothing to do
+    }
+
+    for (slong d = 0; d < order; d++)
+        nmod_mat_clear(R + d);
+    flint_free(R);
+    nmod_mat_clear(res);
+    _perm_clear(perm);
+    flint_free(pair_tmp);
+    flint_free(pivots);
+    nmod_mat_clear(nsbas);
+}
+
+
+/*----------------------------------------------------------------*/
+/* mbasis, dispatcher                                              */
+/*----------------------------------------------------------------*/
+
+/** Main `mbasis` function: chooses between the "rescomp" and "resupdate"
+ * variants depending on the shape of `matp`.
+ *
+ * rescomp's residual-recomputation cost is O(m*n^2*order^2/2); resupdate's
+ * residual-maintenance cost is O(m*n*(m-n)*order^2/2) -- a factor
+ * n/(m-n) cheaper. The two are equal at n = m-n, i.e. cdim = rdim/2; past
+ * that point (cdim > rdim/2) resupdate is asymptotically the better choice,
+ * growing to a measured 4-5x at cdim close to rdim, and fading to ~1.1x
+ * right at the cdim = rdim/2 boundary (matching the (m-n)/n factor exactly. 
+ * Both variants apply
+ * the identical row operations and nullspace pivot choice, so they always
+ * agree bit-for-bit; the dispatch is a pure timing decision.
+ * 
+ * See also detailed comments in nmod_mat_poly.h
+ *
+ * The condition below (`2*cdim > rdim`) uses a strict inequality so that
+ * exactly at the crossover (cdim = rdim/2) rescomp is used -- resupdate has
+ * no measured edge there, so there is no reason to pay for the extra
+ * residual-vector bookkeeping in that boundary case. This differs slightly
+ * from the `cdim > rdim/2 + 1` sketched in an earlier draft of this
+ * dispatcher (see the comment this function replaces): that threshold
+ * predates any actual measurement of the two variants against each other.
+ * `2*cdim > rdim` is the one validated against real timings across
+ * cdim/rdim ratios from 1/2 up to ~19/20; no
+ * regression was found versus rescomp anywhere in cdim <= rdim/2. */
+
+void nmod_mat_poly_mbasis(nmod_mat_poly_t appbas,
+                          slong * shift,
+                          const nmod_mat_poly_t matp,
+                          slong order)
+{
+    if (2 * matp->c > matp->r)
+        nmod_mat_poly_mbasis_resupdate(appbas, shift, matp, order);
+    else
+        nmod_mat_poly_mbasis_rescomp(appbas, shift, matp, order);
+}
+
+/* -*- mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

@@ -18,7 +18,6 @@
 
 
 #include <string.h>
-#include "mapml_conversion.h"
 #include "mapml_matpoly_export.h"
 
 /***********************************************************

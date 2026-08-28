@@ -6,6 +6,9 @@
 #include <flint/nmod_poly_mat.h>
 #include <flint/perm.h>
 #include <flint/ulong_extras.h>
+
+#include "pml.h"
+
 #include "nmod_poly_mat_utils.h"
 
 /*******************
