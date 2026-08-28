@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <flint/test_helpers.h>
 #include "nmod_mat_struct.h"
 
 TEST_FUNCTION_START(nmod_mat_toeplitz_mul_mat, state)
@@ -44,6 +44,14 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_mul_mat, state)
         // Check equality
         int result = nmod_mat_equal(res_struct, res_dense);
         if (!result) TEST_FUNCTION_FAIL("Structured result and dense result do not coincide\n");
+        
+        flint_free(data);
+        nmod_mat_toeplitz_clear(mat);
+        
+        nmod_mat_clear(b);    
+        nmod_mat_clear(res_struct);    
+        nmod_mat_clear(dense_mat);    
+        nmod_mat_clear(res_dense);    
     }    
     TEST_FUNCTION_END(state);
 }

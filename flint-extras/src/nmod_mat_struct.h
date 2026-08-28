@@ -103,7 +103,6 @@ void nmod_mat_toeplitz_solve_right(nmod_mat_toeplitz_t mat,
 /* Clears the matrix and releases any memory it used */
 void nmod_mat_toeplitz_clear(nmod_mat_toeplitz_t mat);
 
-
 // TODO ADD GETTERS
 /* ---------------------------
  * Lower triangular Toeplitz matrices 
@@ -198,9 +197,10 @@ ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
 typedef struct
 {
     ulong nrows,ncols; // Dimensions
-    ulong ngens; // Number of generators
-    nmod_mat_lower_toeplitz_t* lower_gens; // Matrices L(g_i)
-    nmod_mat_upper_toeplitz_t* upper_gens; // Matrices U(h_i)
+    //nmod_mat_lower_toeplitz_t* lower_gens; // Matrices L(g_i)
+    //nmod_mat_upper_toeplitz_t* upper_gens; // Matrices U(h_i)
+    nmod_mat_t G;
+    nmod_mat_t H;
     nmod_t mod;
 } nmod_toeplitz_like_struct;
 
@@ -213,14 +213,10 @@ void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
                              ulong N);
 
 void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
-                             ulong ngens,
-                             nmod_mat_lower_toeplitz_t* lower_generators,
-                             nmod_mat_upper_toeplitz_t* upper_generators);
+                             nmod_mat_t G,
+                             nmod_mat_t H);
 
-void nmod_toeplitz_like_set_vec(nmod_toeplitz_like_t mat,
-                                 ulong ngens,
-                                 nn_ptr* lower_generators,
-                                 nn_ptr* upper_generators);
+void nmod_toeplitz_like_clear(nmod_toeplitz_like_t mat);
 
 void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
                                   ulong nrows,
