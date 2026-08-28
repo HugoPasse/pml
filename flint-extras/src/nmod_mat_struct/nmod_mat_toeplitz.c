@@ -2,7 +2,6 @@
 #include "nmod_poly_mat_approximant.h"
 
 #include <flint/nmod_mat.h>
-#include <stdlib.h>
 
 #include <flint/flint.h>
 #include <flint/nmod_types.h>
@@ -144,7 +143,6 @@ void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
                                            nmod_mat_t res){
     slong order = mat->nrows + mat->ncols - 1; 
     int r = mat->ncols - mat->nrows; 
-    
     /* Constructing the polynomial matrix [[T(x)],[-1]] */
     // Start with the two entries
     nmod_poly_t pol, minus_one;
@@ -163,10 +161,8 @@ void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
     /* We know compute an approximant basis of (pmat,order) in (ncols,ncols)-popov_form */
     nmod_poly_mat_t appbas;
     nmod_poly_mat_init(appbas, r, 2, mat->mod.n);
-    slong* shifts = malloc(2*sizeof(slong));
-    shifts[0] = 0;
-    shifts[1] = 0;
-
+    slong shifts[2] = {0, 0};
+        
     nmod_poly_mat_pmbasis(appbas, shifts, pmat, order);
 
     for (int i=0; i<r; i++) {
@@ -174,21 +170,6 @@ void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
             nmod_mat_set_entry(res, j, i, nmod_poly_get_coeff_ui(nmod_poly_mat_entry(appbas, i, 0), j));   
         }
     }
-    flint_printf("Result: ");
-    nmod_mat_print_pretty(res);
-    //nmod_poly_mat_t tmp;
-    //nmod_poly_mat_init(tmp, 2, 1, mat->mod.n);
-    //nmod_poly_mat_mul(tmp, appbas, pmat);
-    //nmod_poly_mat_print(tmp, print_pmat);
-
-    /* Debug */ 
-    flint_printf("Order: %d\n",order);
-    char* print_pmat = malloc(1000 * sizeof(char));
-    flint_printf("Poly matrix : ");
-    nmod_poly_mat_print(pmat, print_pmat);
-    flint_printf("Approximant basis : ");
-    nmod_poly_mat_print(appbas, print_pmat);
-    nmod_poly_clear(pol);
 }
 
 void nmod_mat_toeplitz_solve_right(nmod_mat_toeplitz_t mat,

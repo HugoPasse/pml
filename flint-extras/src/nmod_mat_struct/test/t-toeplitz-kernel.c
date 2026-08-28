@@ -23,18 +23,16 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_kernel, state)
     nmod_mat_t res;
     nmod_mat_init(res, nc, nc-nr, N);
     nmod_mat_zero(res);
-    nmod_mat_print_pretty(res);
 
-    printf("ici\n");
     nmod_mat_toeplitz_right_kernel_basis(mat, res);
-    nmod_mat_clear(dense_mat);
     nmod_mat_toeplitz_clear(mat);
 
     nmod_mat_t pdt;
     nmod_mat_init(pdt, nr, nc-nr, N);
     nmod_mat_mul(pdt, dense_mat, res);
-    flint_printf("Product: ");
+    flint_printf("Product M*ker: ");
     nmod_mat_print_pretty(pdt);
 
+    nmod_mat_clear(dense_mat);
     TEST_FUNCTION_END(state);
 }
