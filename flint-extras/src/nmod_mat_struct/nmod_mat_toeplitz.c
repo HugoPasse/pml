@@ -1,6 +1,7 @@
 #include "nmod_mat_struct.h"
 #include "nmod_poly_mat_approximant.h"
 
+#include <flint/longlong.h>
 #include <flint/nmod_mat.h>
 
 #include <flint/flint.h>
@@ -8,6 +9,7 @@
 #include <flint/nmod_vec.h>
 #include <flint/nmod_poly.h>
 #include <flint/nmod_poly_mat.h>
+#include <stdio.h>
 
 void nmod_mat_toeplitz_init(nmod_mat_toeplitz_t mat, 
                                 ulong nrows, 
@@ -73,7 +75,6 @@ void nmod_mat_toeplitz_as_poly(nmod_mat_toeplitz_t mat,
 
 void nmod_mat_toeplitz_dense(nmod_mat_toeplitz_t mat,
                                   nmod_mat_t dense_mat){
-
     for(int i=0; i<nmod_mat_toeplitz_nrows(mat); i++){
         for(int j=0; j<nmod_mat_toeplitz_ncols(mat); j++){
             int k = nmod_mat_toeplitz_ncols(mat) - 1 + i - j;
@@ -134,17 +135,12 @@ void nmod_mat_toeplitz_left_mul_mat(nmod_mat_toeplitz_t mat,
     // TODO result matrix indexed in row major order -> copy directly there    
 }
 
-
-// WARNING: The code here asssumes that the toeplitz matrix is full rank. 
-// The issue is that nmod_poly_mat_pmbasis wants appbas allocated with right sizes, 
-// i.e. we need a priori knowledge of the rank
-// Possible FIX : allocate too many rows for appbas and check a posteriori each row of the basis
 void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
                                            nmod_mat_t res){
     slong order = mat->nrows + mat->ncols - 1; 
-    int r = mat->ncols - mat->nrows; 
     /* Constructing the polynomial matrix [[T(x)],[-1]] */
     // Start with the two entries
+    // TODO Allocate directly in pmat, avoid useless copy
     nmod_poly_t pol, minus_one;
     nmod_mat_toeplitz_as_poly(mat, pol);
 
@@ -160,16 +156,45 @@ void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
     
     /* We know compute an approximant basis of (pmat,order) in (ncols,ncols)-popov_form */
     nmod_poly_mat_t appbas;
-    nmod_poly_mat_init(appbas, r, 2, mat->mod.n);
+    nmod_poly_mat_init(appbas, 2, 2, mat->mod.n);
     slong shifts[2] = {0, 0};
         
     nmod_poly_mat_pmbasis(appbas, shifts, pmat, order);
+    
+    /* Initialization of the kernel at the right size */
+    int rd0 = FLINT_MAX(nmod_poly_degree(nmod_poly_mat_entry(appbas, 0, 0)), 
+                        nmod_poly_degree(nmod_poly_mat_entry(appbas, 0, 1)));
 
-    for (int i=0; i<r; i++) {
-        for (int j=0; j<mat->ncols; j++) {
-            nmod_mat_set_entry(res, j, i, nmod_poly_get_coeff_ui(nmod_poly_mat_entry(appbas, i, 0), j));   
+    int rd1 = FLINT_MAX(nmod_poly_degree(nmod_poly_mat_entry(appbas, 1, 0)), 
+                        nmod_poly_degree(nmod_poly_mat_entry(appbas, 1, 1)));
+    
+    int ker_size = 0;
+    ker_size += FLINT_MAX(0, (int)(mat->ncols-rd0));
+    ker_size += FLINT_MAX(0, (int)(mat->ncols-rd1-1));
+    
+    nmod_mat_init(res, mat->ncols, ker_size, mat->mod.n);
+    nmod_mat_zero(res);
+    int k = 0;
+    if(rd0 < mat->ncols){
+        for (int i=0; i<mat->ncols - rd0; i++) {
+            for (int j=0; j<=rd0; j++) {
+                nmod_mat_set_entry(res, j+i, i, nmod_poly_get_coeff_ui(nmod_poly_mat_entry(appbas, 0, 0), j));
+            }
+            k++;
         }
     }
+    if(rd1 < mat->ncols - 1){
+        for (int i=0; i<mat->ncols - 1 - rd1; i++) {
+            for (int j=0; j<=rd1; j++) {
+                nmod_mat_set_entry(res, j+i, i+k, nmod_poly_get_coeff_ui(nmod_poly_mat_entry(appbas, 1, 0), j));
+            }
+        }
+    }
+    nmod_poly_clear(pol);
+    nmod_poly_clear(minus_one);
+    nmod_poly_mat_clear(pmat);
+
+    nmod_poly_mat_clear(appbas);
 }
 
 void nmod_mat_toeplitz_solve_right(nmod_mat_toeplitz_t mat,
