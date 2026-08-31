@@ -117,9 +117,9 @@ ALGEB nmod_mat_poly_to_algeb(MKernelVector kv, const nmod_mat_poly_t Ain){
         }
 
     // Put this ?
-        nmod_poly_mat_clear(A);
+    nmod_poly_mat_clear(A);
 
-        return maple_A;
+    return maple_A;
 
     }
 
@@ -185,7 +185,7 @@ ALGEB nmod_mat_poly_to_algeb(MKernelVector kv, const nmod_mat_poly_t Ain){
     // t = (double)(clock()-tt) / CLOCKS_PER_SEC;
     // MapleALGEB_Printf(kv, " Time to alg %f ms\n", ToMapleFloat(kv,t*1000));
 
-            return maple_A;
+        return maple_A;
 
         }
 
