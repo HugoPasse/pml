@@ -1,6 +1,7 @@
 #ifndef __STRUCT_NMOD_MAT__H
 #define __STRUCT_NMOD_MAT__H
 
+#include <flint/flint.h>
 #include <flint/nmod_mat.h>
 #include <flint/nmod_types.h>
 #include <flint/nmod_vec.h>
@@ -133,6 +134,8 @@ void nmod_mat_lower_toeplitz_init_set(nmod_mat_lower_toeplitz_t mat,
                                        ulong N,
                                        nn_ptr data);
 
+void nmod_mat_lower_toeplitz_clear(nmod_mat_lower_toeplitz_t mat);
+
 void nmod_mat_lower_toeplitz_dense(nmod_mat_lower_toeplitz_t mat,
                                     nmod_mat_t res);
 
@@ -188,6 +191,37 @@ ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
                                          nmod_mat_upper_toeplitz_t umat,
                                          ulong i,
                                          ulong j); 
+
+/* ---------------------------
+ * Circulant matrices
+ * --------------------------- */
+typedef struct
+{
+    ulong nrows,ncols; // Dimensions
+    nn_ptr data;
+    nmod_t mod;
+} nmod_mat_circulant_struct;
+
+typedef nmod_mat_circulant_struct nmod_mat_circulant_t[1];
+
+void nmod_mat_circulant_init(nmod_mat_circulant_t mat,
+                             ulong nrows,
+                             ulong ncols,
+                             ulong N);
+
+void nmod_mat_circulant_set(nmod_mat_circulant_t mat,
+                            nn_ptr data);
+
+void nmod_mat_circulant_init_set(nmod_mat_circulant_t mat,
+                             ulong nrows,
+                             ulong ncols,
+                             nn_ptr data,
+                             ulong N);
+
+void nmod_mat_circulant_clear(nmod_mat_circulant_t mat);
+
+void nmod_mat_circulant_dense(nmod_mat_circulant_t mat,
+                                 nmod_mat_t res);
 
 /* ---------------------------
  * Toeplitz-like matrices

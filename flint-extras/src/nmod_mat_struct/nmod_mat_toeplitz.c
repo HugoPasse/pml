@@ -138,7 +138,7 @@ void nmod_mat_toeplitz_left_mul_mat(nmod_mat_toeplitz_t mat,
 void nmod_mat_toeplitz_right_kernel_basis(nmod_mat_toeplitz_t mat,
                                            nmod_mat_t res){
     slong order = mat->nrows + mat->ncols - 1; 
-    /* Constructing the polynomial matrix [[T(x)],[-1]] */
+    /* Construct the polynomial matrix [[T(x)],[-1]] */
     // Start with the two entries
     // TODO Allocate directly in pmat, avoid useless copy
     nmod_poly_t pol, minus_one;

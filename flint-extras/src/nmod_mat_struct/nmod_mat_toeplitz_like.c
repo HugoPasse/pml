@@ -1,4 +1,7 @@
+#include <flint/flint.h>
 #include <flint/nmod_mat.h>
+#include <flint/nmod_vec.h>
+#include <stdio.h>
 #include "nmod_mat_struct.h"
 
 void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
@@ -15,7 +18,7 @@ void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
 
 // TODO see if generators should be copied or not ?
 // Do we want to have nn_ptr as input for lower / upper generators ?
-void nmod_toeplitz_like_set(nmod_toeplitz_like_struct *mat,
+void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
                              nmod_mat_t G, 
                              nmod_mat_t H){
     nmod_mat_init(mat->G, nmod_mat_nrows(G), nmod_mat_ncols(G), mat->mod.n);
@@ -23,6 +26,11 @@ void nmod_toeplitz_like_set(nmod_toeplitz_like_struct *mat,
 
     nmod_mat_set(mat->G, G);
     nmod_mat_set(mat->H, H);
+}
+
+void nmod_toeplitz_like_clear(nmod_toeplitz_like_t mat){
+    nmod_mat_clear(mat->G);
+    nmod_mat_clear(mat->H);
 }
 
 void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
@@ -43,26 +51,52 @@ void nmod_toeplitz_like_randtest(nmod_toeplitz_like_t mat,
 
 void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat, 
                                nmod_mat_t dense_mat){
-    //nmod_mat_init(dense_mat, mat->nrows, mat->ncols, mat->mod.n);
-    //nmod_mat_zero(dense_mat);
+    nmod_mat_zero(dense_mat);
+    for(int i=0; i<nmod_mat_ncols(mat->G); i++){
+        nmod_mat_lower_toeplitz_t low;
+        nmod_mat_lower_toeplitz_init(low, mat->nrows, mat->ncols, mat->mod.n);
+        for(int j=0; j<mat->nrows; j++){
+            low->data[j] = nmod_mat_get_entry(mat->G, j, i);
+        }
+        nmod_mat_t dense_low;
+        nmod_mat_init(dense_low, mat->nrows, mat->ncols, mat->mod.n);
+        nmod_mat_lower_toeplitz_dense(low, dense_low);
+        nmod_mat_print(dense_low);
 
-    //for(int i=0; i<mat->ngens; i++){
-    //    nmod_mat_t ldense, udense;
-    //    nmod_mat_init(ldense, mat->nrows, mat->lower_gens[i]->ncols, mat->mod.n);
-    //    nmod_mat_init(udense, mat->upper_gens[i]->nrows, mat->ncols, mat->mod.n);
+        nmod_mat_circulant_t circ;
+        nmod_mat_t dense_circ;
+        nmod_mat_init(dense_circ, mat->ncols, mat->ncols, mat->mod.n);
+        nmod_mat_circulant_init(circ, mat->ncols, mat->ncols, mat->mod.n);
+        for(int j=0; j<mat->ncols; j++){
+            circ->data[j] = nmod_mat_get_entry(mat->H, j, i);
+        }
+        nmod_mat_circulant_dense(circ, dense_circ);
+        nmod_mat_print(dense_circ);
 
-    //    nmod_mat_zero(ldense);
-    //    nmod_mat_zero(udense);
-
-    //    nmod_mat_lower_toeplitz_dense(mat->lower_gens[i], ldense);
-    //    nmod_mat_upper_toeplitz_dense(mat->upper_gens[i], udense);
-    //    
-    //    nmod_mat_addmul(dense_mat, dense_mat, ldense, udense);
-    //    
-    //    nmod_mat_clear(ldense);
-    //    nmod_mat_clear(udense);
-    //}
+        nmod_mat_t product;
+        nmod_mat_init(product, mat->nrows, mat->ncols, mat->mod.n);
+        nmod_mat_mul(product, dense_low, dense_circ);
+        nmod_mat_add(dense_mat, dense_mat, product);
+        
+        nmod_mat_lower_toeplitz_clear(low);
+        nmod_mat_circulant_clear(circ);
+        nmod_mat_clear(product);
+        nmod_mat_clear(dense_low);
+        nmod_mat_clear(dense_circ);
+    } 
+    // Remains to multiply by the last mat
+    nmod_mat_t final_pdt;
+    nmod_mat_init(final_pdt, mat->nrows, mat->nrows, mat->mod.n);
+    nmod_mat_zero(final_pdt);
+    for(int i=0; i<((mat->nrows-1) / mat->ncols) + 1; i++){
+        for(int j=0; j<mat->nrows - i*mat->ncols; j++){
+            nmod_mat_set_entry(final_pdt, j+i*mat->ncols, j, 1);
+        }
+    }
+    nmod_mat_mul(dense_mat, final_pdt, dense_mat);
+    nmod_mat_clear(final_pdt);
 }
+
 
 ulong nmod_toeplitz_like_t_nrows(nmod_toeplitz_like_t mat){
     return mat->nrows;
@@ -88,7 +122,30 @@ ulong nmod_mat_lower_upper_toeplitz_pdt(nmod_mat_lower_toeplitz_t lmat,
 void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t b, 
                              nmod_toeplitz_like_t res){
-    // TODO
+    int k = nmod_mat_ncols(a->H) + nmod_mat_ncols(a->H);
+    nmod_mat_init(res->G, a->nrows, k, a->mod.n);
+    nmod_mat_init(res->H, a->ncols, k, a->mod.n);
+    
+    for (int i=0; i<nmod_mat_nrows(a->G); i++) {
+        for (int j=0; j<nmod_mat_ncols(a->G); j++) {
+            nmod_mat_set_entry(res->G, i, j, nmod_mat_get_entry(a->G, i, j)); 
+        }
+    }
+    for (int i=0; i<nmod_mat_nrows(a->H); i++) {
+        for (int j=0; j<nmod_mat_ncols(a->H); j++) {
+            nmod_mat_set_entry(res->H, i, j, nmod_mat_get_entry(a->H, i, j)); 
+        }
+    } 
+    for (int i=0; i<nmod_mat_nrows(b->G); i++) {
+        for (int j=0; j<nmod_mat_ncols(b->G); j++) {
+            nmod_mat_set_entry(res->G, i, j+nmod_mat_ncols(a->G), nmod_mat_get_entry(b->G, i, j)); 
+        }
+    }
+    for (int i=0; i<nmod_mat_nrows(b->H); i++) {
+        for (int j=0; j<nmod_mat_ncols(b->H); j++) {
+            nmod_mat_set_entry(res->H, i, j+nmod_mat_ncols(a->H), nmod_mat_get_entry(b->H, i, j)); 
+        }
+    }
 }
 
 

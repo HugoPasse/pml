@@ -24,10 +24,14 @@ void nmod_mat_lower_toeplitz_init_set(nmod_mat_lower_toeplitz_t mat,
     nmod_mat_lower_toeplitz_set(mat,data);
 }
 
+void nmod_mat_lower_toeplitz_clear(nmod_mat_lower_toeplitz_t mat){
+    if(mat->data){
+        flint_free(mat->data);
+    }
+}
+
 void nmod_mat_lower_toeplitz_dense(nmod_mat_lower_toeplitz_t mat,
                                     nmod_mat_t res){
-    nmod_mat_init(res, mat->nrows, mat->ncols, mat->mod.n);
-    nmod_mat_zero(res);
     for(int i=0; i<mat->nrows; i++){
         for(int j=0; j<=FLINT_MIN(i,mat->ncols-1); j++){
             nmod_mat_set_entry(res, i, j, mat->data[i-j]);
