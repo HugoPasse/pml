@@ -299,12 +299,11 @@ void nmod_toeplitz_like_mul(nmod_toeplitz_like_t a,
 void nmod_toeplitz_like_inv(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t res);
 
+/* Misc */
 void nmod_mat_displacement_operator(nmod_mat_t mat,
                                     nmod_mat_t res);
 
 /* Generators */
 void nmod_toeplitz_like_reduce_gens(nmod_toeplitz_like_t mat);
-
-
 
 #endif 
