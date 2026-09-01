@@ -61,7 +61,6 @@ void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat,
         nmod_mat_t dense_low;
         nmod_mat_init(dense_low, mat->nrows, mat->ncols, mat->mod.n);
         nmod_mat_lower_toeplitz_dense(low, dense_low);
-        nmod_mat_print(dense_low);
 
         nmod_mat_circulant_t circ;
         nmod_mat_t dense_circ;
@@ -71,7 +70,6 @@ void nmod_toeplitz_like_dense(nmod_toeplitz_like_t mat,
             circ->data[j] = nmod_mat_get_entry(mat->H, j, i);
         }
         nmod_mat_circulant_dense(circ, dense_circ);
-        nmod_mat_print(dense_circ);
 
         nmod_mat_t product;
         nmod_mat_init(product, mat->nrows, mat->ncols, mat->mod.n);
