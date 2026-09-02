@@ -1,17 +1,19 @@
+#include <flint/flint.h>
 #include <flint/nmod_mat.h>
 #include <flint/nmod_types.h>
 #include <flint/nmod_vec.h>
 #include <flint/test_helpers.h>
+#include <flint/ulong_extras.h>
 #include "nmod_mat_struct.h"
 
 TEST_FUNCTION_START(nmod_mat_toeplitz_like_pdt_vec, state)
 {
     for(int i = 0; i < 100 * flint_test_multiplier(); i++)
     {
-        long n = 7;
-        long m = 7;
-        long k = 2;
-        ulong N = 101;
+        long n = n_randtest_bits(state, 6);
+        long m = n_randtest_bits(state, 6);
+        long k = 5;
+        ulong N = n_randtest_prime(state, 1);
         
         nmod_toeplitz_like_t mat;
         nmod_toeplitz_like_randtest(mat, n, m, k, N, state);

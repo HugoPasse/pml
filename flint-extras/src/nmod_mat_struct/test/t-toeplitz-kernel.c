@@ -4,14 +4,14 @@
 #include <flint/nmod_mat.h>
 #include <flint/nmod_vec.h>
 #include <flint/test_helpers.h>
-#include <stdio.h>
+#include <flint/ulong_extras.h>
 
 TEST_FUNCTION_START(nmod_mat_toeplitz_kernel, state)
 {
     for(int i = 0; i < 100 * flint_test_multiplier(); i++)
     {
-        ulong nr = n_randtest_bits(state,3);
-        ulong nc = nr+4;
+        ulong nr = n_randtest_bits(state,6);
+        ulong nc = nr+n_randtest_bits(state, 3);
         ulong N = n_randtest_prime(state, 1);
 
         nmod_mat_toeplitz_t mat;
