@@ -20,7 +20,6 @@ test_struct tests[] =
     TEST_FUNCTION(nmod_mat_toeplitz_kernel),
     TEST_FUNCTION(nmod_mat_toeplitz_like),
     // TEST_FUNCTION(nmod_mat_toeplitz_like_add),
-    // This does not work yet due to incorrect dense reconstruction
     TEST_FUNCTION(nmod_mat_toeplitz_like_pdt_vec)
 };
 

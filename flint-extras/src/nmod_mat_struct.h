@@ -233,8 +233,9 @@ typedef struct
     ulong nrows,ncols; // Dimensions
     //nmod_mat_lower_toeplitz_t* lower_gens; // Matrices L(g_i)
     //nmod_mat_upper_toeplitz_t* upper_gens; // Matrices U(h_i)
-    nmod_mat_t G;
-    nmod_mat_t H;
+    nn_ptr* G;
+    nn_ptr*  H;
+    int ngens;
     nmod_t mod;
 } nmod_toeplitz_like_struct;
 
@@ -247,8 +248,9 @@ void nmod_toeplitz_like_init(nmod_toeplitz_like_t mat,
                              ulong N);
 
 void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
-                             nmod_mat_t G,
-                             nmod_mat_t H);
+                             nn_ptr* G,
+                             nn_ptr* H,
+                             int ngens);
 
 void nmod_toeplitz_like_clear(nmod_toeplitz_like_t mat);
 
@@ -285,6 +287,10 @@ void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t res);
 
 void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
+                                           nn_ptr v, 
+                                           nn_ptr res);
+
+void nmod_toeplitz_like_mul_nmod_vec_left_using_vec(nmod_toeplitz_like_t a,
                                            nn_ptr v, 
                                            nn_ptr res);
 

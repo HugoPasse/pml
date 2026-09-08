@@ -25,11 +25,24 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_like, state)
         nmod_mat_init(disp_mat, m, n, N);
         nmod_mat_displacement_operator(dense_mat, disp_mat);
 
-        nmod_mat_t GH, Ht;
+        nmod_mat_t GH, G, Ht;
+        nmod_mat_init(G, m , k , N);
+        for(int i=0; i<k; i++){
+            for (int j=0; j<m; j++) {
+                nmod_mat_set_entry(G, j, i, (mat->G)[i][j]);
+            }
+        }
+
         nmod_mat_init(Ht, k , n , N);
-        nmod_mat_transpose(Ht, mat->H);
+        for(int i=0; i<k; i++){
+            for (int j=0; j<n; j++) {
+                nmod_mat_set_entry(Ht, i, j, (mat->H)[i][j]);
+            }
+        }
+        
+        // Product of the displacement generators
         nmod_mat_init(GH, m , n , N);
-        nmod_mat_mul(GH, mat->G, Ht);
+        nmod_mat_mul(GH, G, Ht);
         
         int result = nmod_mat_equal(GH, disp_mat);
         if (!result) TEST_FUNCTION_FAIL("Structured result and dense result do not coincide\n");
@@ -37,6 +50,7 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_like, state)
         nmod_mat_clear(dense_mat);
         nmod_mat_clear(disp_mat);
         nmod_mat_clear(GH);
+        nmod_mat_clear(G);
         nmod_mat_clear(Ht);
         
             

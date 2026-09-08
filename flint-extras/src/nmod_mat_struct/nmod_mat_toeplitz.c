@@ -9,7 +9,7 @@
 #include <flint/nmod_vec.h>
 #include <flint/nmod_poly.h>
 #include <flint/nmod_poly_mat.h>
-#include <stdio.h>
+
 
 void nmod_mat_toeplitz_init(nmod_mat_toeplitz_t mat, 
                                 ulong nrows, 
