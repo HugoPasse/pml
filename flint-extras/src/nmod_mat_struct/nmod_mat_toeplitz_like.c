@@ -170,28 +170,41 @@ void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
     Q[a->ncols] = 1;
 
     nn_ptr Qtilinv = _nmod_vec_init(a->nrows);
+    _nmod_vec_zero(Qtilinv, a->nrows);
     for(int i=0; i*a->ncols < a->nrows; i++){
         Qtilinv[i * a->ncols] = 1;
     } 
 
+    // Reverse the input vector 
+    nn_ptr vrev = _nmod_vec_init(a->ncols);
+    _nmod_poly_reverse(vrev,v,a->ncols,a->ncols);
+
     // Setting the result vector to zero
+    nn_ptr res_tmp = _nmod_vec_init(a->nrows);
+    _nmod_vec_zero(res_tmp, a->nrows);
     _nmod_vec_zero(res, a->nrows);
     nn_ptr tmp = _nmod_vec_init(FLINT_MAX(a->ncols,a->nrows));
+    nn_ptr tmp1 = _nmod_vec_init(FLINT_MAX(a->ncols,a->nrows));
     for(int i=0; i<a->ngens; i++){
+        _nmod_vec_zero(tmp, FLINT_MAX(a->ncols,a->nrows));
+        _nmod_vec_zero(tmp1, FLINT_MAX(a->ncols,a->nrows));
         // First product by M_{hi,Q}
-        _nmod_poly_mulmod(tmp,(a->H)[i],a->ncols,v,a->nrows,Q,a->ncols+1,a->mod);
+        _nmod_poly_mulmod(tmp,(a->H)[i],a->ncols,vrev,a->ncols,Q,a->ncols+1,a->mod);
         // Product by J_n -> reverse polynomial
-        _nmod_poly_reverse(tmp,tmp,a->ncols,a->ncols);
+        _nmod_poly_reverse(tmp1,tmp,a->ncols,a->ncols);
         // Second product by M_{gi,P}
-        _nmod_poly_mullow(tmp, tmp, a->ncols, (a->G)[i], a->nrows, a->nrows, a->mod);
+        _nmod_poly_mullow(tmp, tmp1, a->ncols, (a->G)[i], a->nrows, a->nrows, a->mod);
         // Adding the term to the complete sum
-        _nmod_vec_add(res, res, tmp, a->nrows, a->mod);
+        _nmod_vec_add(res_tmp, res_tmp, tmp, a->nrows, a->mod);
     }
-    _nmod_poly_mullow(res, res, a->nrows, Qtilinv, a->nrows, a->nrows, a->mod);
+    _nmod_poly_mullow(res, res_tmp, a->nrows, Qtilinv, a->nrows, a->nrows, a->mod);
             
     flint_free(Q);
     flint_free(Qtilinv);
+    flint_free(vrev);
     flint_free(tmp);
+    flint_free(tmp1);
+    flint_free(res_tmp);
 }
 
 void nmod_toeplitz_like_mul_nmod_vec_right(nmod_toeplitz_like_t a,

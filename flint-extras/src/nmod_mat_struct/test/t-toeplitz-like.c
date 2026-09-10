@@ -24,7 +24,6 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_like, state)
         nmod_mat_t disp_mat;
         nmod_mat_init(disp_mat, m, n, N);
         nmod_mat_displacement_operator(dense_mat, disp_mat);
-
         nmod_mat_t GH, G, Ht;
         nmod_mat_init(G, m , k , N);
         for(int i=0; i<k; i++){
