@@ -1,4 +1,6 @@
-#include <stdio.h>
+#include <flint/flint.h>
+#include <flint/nmod_mat.h>
+#include <flint/test_helpers.h>
 #include "nmod_mat_struct.h"
 
 TEST_FUNCTION_START(nmod_mat_toeplitz_like_add, state)
@@ -19,6 +21,8 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_like_add, state)
         nmod_toeplitz_like_randtest(mat0, n, m, k0, N, state);
         nmod_toeplitz_like_randtest(mat1, n, m, k1, N, state);
         nmod_toeplitz_like_add(mat0,mat1,mat_sum);
+
+        nmod_mat_init(mat_sum_dense, n, m, N);
         nmod_toeplitz_like_dense(mat_sum, mat_sum_dense);
 
         nmod_mat_init(mat0_dense, n, m, N);
@@ -31,6 +35,15 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_like_add, state)
         if(!nmod_mat_equal(res_dense, mat_sum_dense)){
             TEST_FUNCTION_FAIL("Sum of Toeplitz like matrices do not coincide");
         }
+
+        nmod_toeplitz_like_clear(mat0);
+        nmod_toeplitz_like_clear(mat1);
+        nmod_toeplitz_like_clear(mat_sum);
+
+        nmod_mat_clear(mat0_dense);
+        nmod_mat_clear(mat1_dense);
+        nmod_mat_clear(mat_sum_dense);
+        nmod_mat_clear(res_dense);
     }
 
     TEST_FUNCTION_END(state);

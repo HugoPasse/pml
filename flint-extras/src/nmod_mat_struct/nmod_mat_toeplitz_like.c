@@ -2,6 +2,7 @@
 #include <flint/nmod_mat.h>
 #include <flint/nmod_poly.h>
 #include <flint/nmod_vec.h>
+#include <stdio.h>
 
 #include "nmod_mat_struct.h"
 
@@ -135,29 +136,48 @@ void nmod_toeplitz_like_add(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t b, 
                              nmod_toeplitz_like_t res){
     int k = a->ngens + b->ngens;
-    nmod_mat_init(res->G, a->nrows, k, a->mod.n);
-    nmod_mat_init(res->H, a->ncols, k, a->mod.n);
+    //nmod_mat_init(res->G, a->nrows, k, a->mod.n);
+    //nmod_mat_init(res->H, a->ncols, k, a->mod.n);
+    nmod_toeplitz_like_init(res, a->nrows, a->ncols, a->mod.n);
+    res->ngens = k;
+    res->G = flint_malloc(k*sizeof(nn_ptr)); 
+    res->H = flint_malloc(k*sizeof(nn_ptr)); 
     
-    for (int i=0; i<nmod_mat_nrows(a->G); i++) {
-        for (int j=0; j<nmod_mat_ncols(a->G); j++) {
-            nmod_mat_set_entry(res->G, i, j, nmod_mat_get_entry(a->G, i, j)); 
-        }
+    for(int i=0; i<a->ngens; i++){
+        res->G[i] = _nmod_vec_init(a->nrows);
+        res->H[i] = _nmod_vec_init(a->ncols);
+        _nmod_vec_set(res->G[i], a->G[i], a->nrows);
+        _nmod_vec_set(res->H[i], a->H[i], a->ncols);
     }
-    for (int i=0; i<nmod_mat_nrows(a->H); i++) {
-        for (int j=0; j<nmod_mat_ncols(a->H); j++) {
-            nmod_mat_set_entry(res->H, i, j, nmod_mat_get_entry(a->H, i, j)); 
-        }
-    } 
-    for (int i=0; i<nmod_mat_nrows(b->G); i++) {
-        for (int j=0; j<nmod_mat_ncols(b->G); j++) {
-            nmod_mat_set_entry(res->G, i, j+nmod_mat_ncols(a->G), nmod_mat_get_entry(b->G, i, j)); 
-        }
+    
+    for(int i=0; i<b->ngens; i++){
+        res->G[i+a->ngens] = _nmod_vec_init(b->nrows);
+        res->H[i+a->ngens] = _nmod_vec_init(b->ncols);
+        _nmod_vec_set(res->G[i+a->ngens], b->G[i], b->nrows);
+        _nmod_vec_set(res->H[i+a->ngens], b->H[i], b->ncols);
     }
-    for (int i=0; i<nmod_mat_nrows(b->H); i++) {
-        for (int j=0; j<nmod_mat_ncols(b->H); j++) {
-            nmod_mat_set_entry(res->H, i, j+nmod_mat_ncols(a->H), nmod_mat_get_entry(b->H, i, j)); 
-        }
-    }
+    
+
+    //for (int i=0; i<nmod_mat_nrows(a->G); i++) {
+    //    for (int j=0; j<nmod_mat_ncols(a->G); j++) {
+    //        nmod_mat_set_entry(res->G, i, j, nmod_mat_get_entry(a->G, i, j)); 
+    //    }
+    //}
+    //for (int i=0; i<nmod_mat_nrows(a->H); i++) {
+    //    for (int j=0; j<nmod_mat_ncols(a->H); j++) {
+    //        nmod_mat_set_entry(res->H, i, j, nmod_mat_get_entry(a->H, i, j)); 
+    //    }
+    //} 
+    //for (int i=0; i<nmod_mat_nrows(b->G); i++) {
+    //    for (int j=0; j<nmod_mat_ncols(b->G); j++) {
+    //        nmod_mat_set_entry(res->G, i, j+nmod_mat_ncols(a->G), nmod_mat_get_entry(b->G, i, j)); 
+    //    }
+    //}
+    //for (int i=0; i<nmod_mat_nrows(b->H); i++) {
+    //    for (int j=0; j<nmod_mat_ncols(b->H); j++) {
+    //        nmod_mat_set_entry(res->H, i, j+nmod_mat_ncols(a->H), nmod_mat_get_entry(b->H, i, j)); 
+    //    }
+    //}
 }
 
 void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
