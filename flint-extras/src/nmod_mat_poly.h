@@ -43,6 +43,8 @@
 #ifndef NMOD_MAT_POLY_H
 #define NMOD_MAT_POLY_H
 
+#include <string.h>  // for memset
+
 #include <flint/perm.h>
 #include <flint/nmod_vec.h>
 #include <flint/nmod_mat.h>
@@ -60,25 +62,101 @@ extern "C" {
 
 /** Struct for matrix polynomials.
  *
- * Storage is a dynamic array of matrices `nmod_mat`. The maximum number of
- * coefficients is `alloc` and the actual number of coefficients (which is the
- * degree plus 1) is `length`. The number of rows and columns are `r` and `c`.
- * The modulus is stored as an `nmod_t`. In the provided functions, e.g. for
- * modifying a coefficient, it is not checked that the dimensions of the
- * modified coefficient are indeed `r x c`.
+ * Storage is a dynamic array of coefficients. Each coefficient is an `r x c`
+ * matrix over `nmod` stored in row-major order, and `coeffs[k]` points at the
+ * entries of the coefficient of degree `k`: the entry in row `i` and column
+ * `j` of that coefficient is `coeffs[k][i*stride + j]`. The dimensions `r` and
+ * `c`, the row stride `stride`, and the modulus `mod` are common to all
+ * coefficients and stored once, here; the coefficients themselves carry no
+ * header. Use ::nmod_mat_poly_coeff_attach to obtain, without copying, an
+ * `nmod_mat_t` view on one coefficient, so that it can be handed to the
+ * functions of the `nmod_mat` module.
+ *
+ * The maximum number of coefficients is `alloc` and the actual number of
+ * coefficients (which is the degree plus 1) is `length`. Only the entry arrays
+ * `coeffs[0], ..., coeffs[length-1]` are allocated; the pointers beyond
+ * `length` are unused, and those beyond `alloc` do not exist.
+ *
+ * Each entry array is allocated with an alignment of ::NMOD_MAT_POLY_ALIGN
+ * bytes (see ::_nmod_mat_poly_coeff_alloc), which is what makes vectorized
+ * sweeps over a coefficient, or across the coefficients, hit whole cache
+ * lines.
+ *
+ * All the initialisation functions set `stride` to `c`, so that initially the
+ * entries of a coefficient are one contiguous run of `r*c` words.
+ * In the provided functions, e.g. for modifying a coefficient, it is not
+ * checked that the dimensions of the modified coefficient are indeed `r x c`.
  */
 typedef struct
 {
-    nmod_mat_struct * coeffs; /**< array of coefficients */
+    nn_ptr * coeffs;          /**< array of coefficient entry arrays */
     slong alloc;              /**< allocated length */
     slong length;             /**< actual length */
     slong r;                  /**< number of rows */
     slong c;                  /**< number of columns */
+    slong stride;             /**< row stride */
     nmod_t mod;               /**< modulus */
 } nmod_mat_poly_struct;
 
 /** nmod_mat_poly_t allows reference-like semantics for nmod_mat_poly_struct */
 typedef nmod_mat_poly_struct nmod_mat_poly_t[1];
+
+/** Alignment, in bytes, of the entry array of each coefficient. A cache line
+ * on current hardware: with it, and since the row stride is the number of
+ * columns, a vector load or store of 8 words taken at an index multiple of 8
+ * inside a coefficient never straddles two cache lines. */
+#define NMOD_MAT_POLY_ALIGN 64
+
+/** Allocates and zeroes the entry array of one coefficient of an `r x c`
+ * matrix polynomial of row stride `stride`, aligned on
+ * ::NMOD_MAT_POLY_ALIGN bytes. The allocated size is rounded up to a multiple
+ * of the alignment, as `flint_aligned_alloc` requires; the padding words are
+ * zeroed as well. Returns `NULL` if there is nothing to allocate. */
+NMOD_MAT_POLY_INLINE nn_ptr
+_nmod_mat_poly_coeff_alloc(slong r, slong stride)
+{
+    if (r <= 0 || stride <= 0)
+        return NULL;
+
+    const size_t size = ((size_t) r * (size_t) stride * sizeof(ulong)
+                             + (NMOD_MAT_POLY_ALIGN - 1))
+                        & ~(size_t) (NMOD_MAT_POLY_ALIGN - 1);
+
+    nn_ptr entries = (nn_ptr) flint_aligned_alloc(NMOD_MAT_POLY_ALIGN, size);
+    memset(entries, 0, size);
+    return entries;
+}
+
+/** Frees an entry array allocated by ::_nmod_mat_poly_coeff_alloc. */
+NMOD_MAT_POLY_INLINE void
+_nmod_mat_poly_coeff_free(nn_ptr entries)
+{
+    if (entries)
+        flint_aligned_free(entries);
+}
+
+/** Sets `cmat` to a view on the coefficient of degree `k` of `matp`: no data
+ * is copied, `cmat` shares its entries with `matp`. Requires `k < matp->length`.
+ *
+ * The view is not an owner: it must not be cleared, and it becomes invalid as
+ * soon as that coefficient of `matp` is freed, i.e. as soon as the length of
+ * `matp` drops to `k` or below, or `matp` is cleared. Writing through the view
+ * writes into `matp`. */
+NMOD_MAT_POLY_INLINE void
+nmod_mat_poly_coeff_attach(nmod_mat_t cmat, const nmod_mat_poly_t matp, slong k)
+{
+    cmat->entries = matp->coeffs[k];
+    cmat->r = matp->r;
+    cmat->c = matp->c;
+    cmat->stride = matp->stride;
+    cmat->mod = matp->mod;
+}
+
+/** Returns the entry array of the coefficient of degree `k` of `matp`, or
+ * `NULL` when `k` exceeds the degree. The entry in row `i`, column `j` of that
+ * coefficient is at offset `i * matp->stride + j`. */
+#define nmod_mat_poly_coeff_ptr(matp, k) \
+    ((k) < (matp)->length ? (matp)->coeffs[(k)] : NULL)
 
 /*------------------------------------------------------------*/
 /* memory management                                          */
@@ -134,6 +212,7 @@ nmod_mat_poly_init_mod(nmod_mat_poly_t matp,
     matp->length = 0;
     matp->r = r;
     matp->c = c;
+    matp->stride = c;
     matp->mod = mod;
 }
 
@@ -167,10 +246,10 @@ _nmod_mat_poly_set_length(nmod_mat_poly_t matp, slong length)
 {
     if (matp->length > length)
         for (slong i = length; i < matp->length; i++)
-            nmod_mat_clear(matp->coeffs + i);
+            _nmod_mat_poly_coeff_free(matp->coeffs[i]);
     else
         for (slong i = matp->length; i < length; i++)
-            nmod_mat_init(matp->coeffs + i, matp->r, matp->c, matp->mod.n);
+            matp->coeffs[i] = _nmod_mat_poly_coeff_alloc(matp->r, matp->stride);
     matp->length = length;
 }
 
@@ -180,9 +259,13 @@ _nmod_mat_poly_set_length(nmod_mat_poly_t matp, slong length)
 NMOD_MAT_POLY_INLINE void
 _nmod_mat_poly_normalise(nmod_mat_poly_t matp)
 {
-    while (matp->length && nmod_mat_is_zero(matp->coeffs + matp->length - 1))
+    nmod_mat_t cmat;
+    while (matp->length > 0)
     {
-        nmod_mat_clear(matp->coeffs + matp->length - 1);
+        nmod_mat_poly_coeff_attach(cmat, matp, matp->length - 1);
+        if (! nmod_mat_is_zero(cmat))
+            break;
+        _nmod_mat_poly_coeff_free(matp->coeffs[matp->length - 1]);
         matp->length--;
     }
 }
@@ -218,9 +301,11 @@ nmod_mat_poly_zero(nmod_mat_poly_t matp)
 NMOD_MAT_POLY_INLINE void
 nmod_mat_poly_one(nmod_mat_poly_t matp)
 {
+    nmod_mat_t cmat;
     nmod_mat_poly_fit_length(matp, 1);
     _nmod_mat_poly_set_length(matp, 1);
-    nmod_mat_one(matp->coeffs + 0);
+    nmod_mat_poly_coeff_attach(cmat, matp, 0);
+    nmod_mat_one(cmat);
 }
 
 /** Tests whether `matp` is one (i.e., if square, the identity matrix
@@ -228,11 +313,14 @@ nmod_mat_poly_one(nmod_mat_poly_t matp)
 NMOD_MAT_POLY_INLINE int
 nmod_mat_poly_is_one(const nmod_mat_poly_t matp)
 {
-    return (matp->length) == 1 && (nmod_mat_is_one(matp->coeffs + 0));
+    nmod_mat_t cmat;
+    if (matp->length != 1)
+        return 0;
+    nmod_mat_poly_coeff_attach(cmat, matp, 0);
+    return nmod_mat_is_one(cmat);
 }
 
 //@} // doxygen group:  Zero and Identity
-
 
 /*------------------------------------------------------------*/
 /* Accessing struct info and coefficients                     */
@@ -275,16 +363,8 @@ nmod_mat_poly_degree(const nmod_mat_poly_t matp)
     return matp->length - 1;
 }
 
-/** \def nmod_mat_poly_coeff(matp, k)
- * Returns a reference to the coefficient of degree `k` in the matrix
- * polynomial `matp`. This function is provided so that individual coefficients
- * can be accessed and operated on by functions in the `nmod_mat` module. This
- * function does not make a copy of the data, but returns a reference
- * `nmod_mat_struct *` to the actual coefficient. Returns `NULL` when `k`
- * exceeds the degree of the matrix polynomial.
- */
-#define nmod_mat_poly_coeff(matp, k) \
-    ((k) < (matp)->length ? (matp)->coeffs + (k) : NULL)
+/* Accessing one coefficient without copying: see
+ * ::nmod_mat_poly_coeff_attach and ::nmod_mat_poly_coeff_ptr . */
 
 /** Get the coefficient of degree `k` in the matrix polynomial `matp`. Zeroes
  * the output matrix when `k` exceeds the degree of the matrix polynomial. */
@@ -292,21 +372,29 @@ NMOD_MAT_POLY_INLINE void
 nmod_mat_poly_get_coeff(nmod_mat_t coeff, const nmod_mat_poly_t matp, slong k)
 {
     if (k < matp->length)
-        nmod_mat_set(coeff, matp->coeffs + k);
+    {
+        nmod_mat_t cmat;
+        nmod_mat_poly_coeff_attach(cmat, matp, k);
+        nmod_mat_set(coeff, cmat);
+    }
     else
         nmod_mat_zero(coeff);
 }
 
-/** \def nmod_mat_poly_lead(const nmod_mat_poly_t poly)
- * Returns a reference to the leading coefficient of the matrix polynomial, as
- * an `nmod_mat_struct *`. This function is provided so that the leading
- * coefficient can be easily accessed and operated on by functions in the
- * `nmod_mat` module. This function does not make a copy of the data, but
- * returns a reference to the actual coefficient.  Returns `NULL` when the
- * polynomial is zero.
+/** Sets `cmat` to a view on the leading coefficient of `matp`, as
+ * ::nmod_mat_poly_coeff_attach does; requires `matp` to be nonzero. */
+NMOD_MAT_POLY_INLINE void
+nmod_mat_poly_lead_attach(nmod_mat_t cmat, const nmod_mat_poly_t matp)
+{
+    nmod_mat_poly_coeff_attach(cmat, matp, matp->length - 1);
+}
+
+/** \def nmod_mat_poly_lead_ptr(matp)
+ * Returns the entry array of the leading coefficient of `matp`, or `NULL` when
+ * the matrix polynomial is zero. This does not make a copy of the data.
  */
-#define nmod_mat_poly_lead(matp) \
-    ((matp)->length ? (matp)->coeffs + (matp)->length - 1 : NULL)
+#define nmod_mat_poly_lead_ptr(matp) \
+    ((matp)->length ? (matp)->coeffs[(matp)->length - 1] : NULL)
 
 /** \def nmod_mat_poly_entry(matp,k,i,j)
  * Directly accesses the entry in the coefficient of `matp` of degree `k`, in
@@ -314,7 +402,7 @@ nmod_mat_poly_get_coeff(nmod_mat_t coeff, const nmod_mat_poly_t matp, slong k)
  * This macro can be used both for reading and writing coefficients.
  */
 #define nmod_mat_poly_entry(matp, k, i, j) \
-    nmod_mat_entry((matp)->coeffs + (k), (i), (j))
+    ((matp)->coeffs[(k)][(i) * (matp)->stride + (j)])
 
 /** Get the entry at row `i` and column `j` in the coefficient of
  * degree `k` of the matrix polynomial `matp`. */
@@ -346,6 +434,34 @@ nmod_mat_poly_set_entry(nmod_mat_poly_t matp,
 
 //@} // doxygen group:  Accessing struct info and matrix coefficients
 
+/*------------------------------------------------------------*/
+/* Equality test                                              */
+/*------------------------------------------------------------*/
+
+/** @name Equality test  
+ * Function to test whether two matrix polynomials are equal. 
+ * Compare coefficient  * by coefficient up to the longer of the two lengths 
+ * (missing coefficients  * on the shorter side are implicitly zero). */
+//@{
+
+NMOD_MAT_POLY_INLINE int nmod_mat_poly_equal(const nmod_mat_poly_t A, const nmod_mat_poly_t B)
+{
+    if (A->r != B->r || A->c != B->c)
+        return 0;
+    slong len = FLINT_MAX(A->length, B->length);
+    for (slong d = 0; d < len; d++)
+        for (slong i = 0; i < A->r; i++)
+            for (slong j = 0; j < A->c; j++)
+            {
+                ulong a = (d < A->length) ? nmod_mat_poly_get_entry(A, d, i, j) : 0;
+                ulong b = (d < B->length) ? nmod_mat_poly_get_entry(B, d, i, j) : 0;
+                if (a != b)
+                    return 0;
+            }
+    return 1;
+}
+
+//@} // doxygen group:  Equality test 
 
 /*------------------------------------------------------------*/
 /* Truncate, Shift, Reverse, Permute                          */
@@ -372,7 +488,7 @@ nmod_mat_poly_truncate(nmod_mat_poly_t matp, slong order)
     if (matp->length > order)
     {
         for (slong i = order; i < matp->length; i++)
-            nmod_mat_clear(matp->coeffs + i);
+            _nmod_mat_poly_coeff_free(matp->coeffs[i]);
         matp->length = order;
         _nmod_mat_poly_normalise(matp);
     }
@@ -380,10 +496,12 @@ nmod_mat_poly_truncate(nmod_mat_poly_t matp, slong order)
 
 /** Sets `(smatp, len + n)` to `(matp, len)` shifted left by `n` coefficients.
  * Inserts zero coefficients at the lower end. Assumes that `len` and `n`
- are positive, and that `smatp` fits `len + n` elements. Supports aliasing
- between res and poly. */
-void _nmod_mat_poly_shift_left(nmod_mat_struct * smatp,
-                               const nmod_mat_struct * matp,
+ are positive, and that `smatp` has length at least `len + n` (its
+ coefficients being already allocated). Supports aliasing between res and
+ poly, in which case the coefficients are moved by exchanging their entry
+ arrays rather than copied. */
+void _nmod_mat_poly_shift_left(nmod_mat_poly_t smatp,
+                               const nmod_mat_poly_t matp,
                                slong len,
                                slong n);
 
@@ -416,11 +534,7 @@ nmod_mat_poly_permute_rows(nmod_mat_poly_t matp,
                            slong * perm_store)
 {
     slong i;
-#if __FLINT_VERSION < 3 || (__FLINT_VERSION == 3 && __FLINT_VERSION_MINOR < 3)
-    ulong ** mat_tmp = flint_malloc(matp->r * sizeof(ulong *));
-#else
     ulong * mat_tmp = (ulong *) flint_malloc(matp->r * matp->c * sizeof(ulong));
-#endif
 
     /* perm_store[i] <- perm_store[perm_act[i]] */
     if (perm_store)
@@ -429,17 +543,12 @@ nmod_mat_poly_permute_rows(nmod_mat_poly_t matp,
     /* rows[i] <- rows[perm_act[i]]  */
     for (slong k = 0; k < matp->length; k++)
     {
-#if __FLINT_VERSION < 3 || (__FLINT_VERSION == 3 && __FLINT_VERSION_MINOR < 3)
         for (i = 0; i < matp->r; i++)
-            mat_tmp[i] = matp->coeffs[k].rows[perm_act[i]];
+            _nmod_vec_set(mat_tmp + i * matp->c,
+                          nmod_mat_poly_entry_ptr(matp, k, perm_act[i], 0), matp->c);
         for (i = 0; i < matp->r; i++)
-            matp->coeffs[k].rows[i] = mat_tmp[i];
-#else
-        for (i = 0; i < matp->r; i++)
-            _nmod_vec_set(mat_tmp + i * matp->c, nmod_mat_entry_ptr(matp->coeffs+k, perm_act[i], 0), matp->c);
-        for (i = 0; i < matp->r; i++)
-            _nmod_vec_set(nmod_mat_entry_ptr(matp->coeffs+k, i, 0), mat_tmp + i * matp->c, matp->c);
-#endif
+            _nmod_vec_set(nmod_mat_poly_entry_ptr(matp, k, i, 0),
+                          mat_tmp + i * matp->c, matp->c);
     }
 
     flint_free(mat_tmp);
@@ -562,13 +671,20 @@ void nmod_mat_poly_init_set_from_nmod_mat(nmod_mat_poly_t matp,
 void nmod_mat_poly_set_from_nmod_mat(nmod_mat_poly_t matp, const nmod_mat_t cmat);
 
 /** Set from polynomial with matrix coefficients `matp`, truncated at the
- * specified `order` (a nonnegative integer). */
+ * specified `order` (a nonnegative integer).
+ *
+ * This conversion is a transposition: writing `n = r*c` for the number of
+ * matrix entries, the input is an `n x order` array stored by rows (one
+ * contiguous coefficient array per polynomial entry) and the output is an
+ * `order x n` array stored by rows (one contiguous entry array per
+ * coefficient). It is performed by blocks, so that every cache line touched
+ * is read, respectively written, in full; see the implementation notes in
+ * `nmod_mat_poly_extra/nmod_mat_poly_set_from.c`. */
 void nmod_mat_poly_set_trunc_from_poly_mat(nmod_mat_poly_t matp,
                                       const nmod_poly_mat_t pmat,
                                       slong order);
 
 /** Set from polynomial with matrix coefficients `matp`. */
-// TODO benchmark and try variants if needed
 NMOD_MAT_POLY_INLINE void
 nmod_mat_poly_set_from_poly_mat(nmod_mat_poly_t matp, const nmod_poly_mat_t pmat)
 {
@@ -647,7 +763,6 @@ void nmod_mat_poly_mbasis_rescomp(nmod_mat_poly_t appbas,
  * @ref nmod_mat_poly_mbasis_rescomp on identical input: both variants apply
  * the same row operations and the same nullspace pivot choice, only the
  * residual bookkeeping differs. */
-
 void nmod_mat_poly_mbasis_resupdate(nmod_mat_poly_t appbas,
                                     slong * shift,
                                     const nmod_mat_poly_t matp,
@@ -689,7 +804,6 @@ void nmod_mat_poly_mbasis_resupdate(nmod_mat_poly_t appbas,
  * (`cdim > rdim/2` selects resupdate, since that is where its asymptotic
  * `n/(m-n)` advantage becomes worthwhile. 
  */
-
 void nmod_mat_poly_mbasis(nmod_mat_poly_t appbas,
                           slong * shift,
                           const nmod_mat_poly_t matp,
@@ -697,6 +811,123 @@ void nmod_mat_poly_mbasis(nmod_mat_poly_t appbas,
 
 
 //@} // doxygen group: M-Basis algorithm (uniform approximant order)
+
+
+/** @name M-IntBasis algorithm (uniform number of interpolation points)
+ * \anchor mintbasis
+ *
+ * The functions here compute a `shift`-minimal ordered weak Popov
+ * interpolant basis for `(E,pts)`: for `E = (E_1,...,E_d)` in `K^{m x n}`
+ * and points `pts = (pts_1,...,pts_d)` in `K`, this is a
+ * basis of `{p in K[x]^{1 x m} : p(pts_k)*E_k = 0 for 1<=k<=d}`. This is
+ * the point-evaluation analogue of `mbasis` (see @ref mbasis): the same
+ * iterative construction, with "coefficient of `P*F`" (order truncation)
+ * replaced by "evaluation `P(pts_k)*E_k`" (interpolation).
+ * 
+ * No assumption such that pairwise distinct points, even though, for now, 
+ * applications of the non-distinct case are not included in pml.
+ *
+ * The length of pts is at least d.
+ * 
+ * `E` is a plain, flat array of `nmod_mat_struct` (`nmod_mat_struct *`),
+ *  a container for a  * sequence of `d` constant matrices,
+ *  its length is also at least d.
+ * 
+ * * * `d`, the number of points to use, is a separate explicit parameter
+ * rather than being read off from pts or E, 
+ * d <= (actual length of pts)
+ * d <= (actual length of E)
+ * 
+ * At the end of the computation, the vector `shift` contains the shifted
+ * row degree of `intbas`, for the input shift.
+ *
+ * This is the algorithm M-IntBasis inspired from: 
+ *   - B. Beckermann and G. Labahn. 2000. Fraction-free computation of matrix 
+ *     rational interpolant and matrix gcds. 
+ *     SIAM J. Matrix Anal. Appl. 22, 1 (2000), 114–144.
+ *   - C.-P. Jeannerod, V. Neiger, É. Schost, and G. Villard. 2017. 
+ *     Computing minimal interpolation bases. 
+ *     J. Symbolic Comput. 83 (2017), 272–314.
+ * and that can be found in 
+ *  - S. Hyun, V. Neiger, E. Schost. Proceedings ISSAC 2019. 
+ *
+ * There are two variants `rescomp`/`resupdate` 
+ * see  * @ref nmod_mat_poly_mintbasis for the resulting (measured)
+ * dispatch condition.
+ */
+//@{
+
+/** Variant of `mintbasis` (see @ref mintbasis) where the residual matrix
+ * `intbas(pts[k])*E_k` is recomputed from scratch, via a full Horner
+ * evaluation of `intbas` at `pts[k]`, at every iteration.
+ *
+ * Complexity: `E` is `d` points `m x n`, 
+ *   - `d` calls to constant nullspace with dimension `m x n`, each one
+ *     gives a constant matrix `K` which is generically `(m-n) x m` (may
+ *     have more rows in exceptional cases);
+ *   - `d` products `(X-pts[k]) Id + K) * intbas` to update the
+ *     interpolant basis (note the `(X-pts[k])` recentering, not plain
+ *     `X` as in `mbasis`'s degree-bump -- interpolant validity at a new
+ *     point has no order-truncation-style absorbing property, so the
+ *     degree-1 correction cannot be chosen freely the way `mbasis`'s can);
+ *   - `d` evaluations of `intbas` at `pts[k]` (Horner) plus `d` products
+ *     `evalP*E_k` to find residuals.
+ * See @ref nmod_mat_poly_mintbasis_resupdate for a variant that skips the
+ * `evalP*E_k` product every iteration, at the cost of a different
+ * residual-maintenance overhead. */
+void nmod_mat_poly_mintbasis_rescomp(nmod_mat_poly_t intbas,
+                                     slong * shift,
+                                     const ulong * pts,
+                                     const nmod_mat_struct * E,
+                                     slong d);
+
+/** Variant of `mintbasis` (see @ref mintbasis) where we store the vector
+ * of future residual values `Res[j] = intbas(pts[j])*E_j`, `j =
+ * k..d-1`, and update it via the SAME elementary row operations applied
+ * to `intbas` at each iteration, instead of recomputing the current
+ * residual via Horner evaluation as
+ * @ref nmod_mat_poly_mintbasis_rescomp does.
+ *
+ * Unlike `mbasis`'s own `resupdate` (see @ref mbasis), whose win comes
+ * from an asymptotically cheaper residual-maintenance cost as `n`
+ * approaches `m`, this variant's `(X-pts[k])` recentering step is a
+ * genuine scalar multiply on every entry of every live residual, every
+ * iteration -- an `O(d^2 m n)`-ish cost with no counterpart in `mbasis`'s
+ * `resupdate` (whose analogous "X-shift" step is a pure pointer
+ * relabeling). So this variant is not generically cheaper the way
+ * `mbasis`'s `resupdate` is; what it does win on is skipping the one real
+ * matrix product (`evalP*E_k`) that `rescomp` pays every iteration. That
+ * saving dominates, and this variant is measured faster, when `d` (the
+ * number of points) is small relative to `m`, and/or `m-n` is small
+ * (i.e. `n` close to `m`) -- see @ref nmod_mat_poly_mintbasis for the
+ * measured dispatch condition and the PR description for the full
+ * measured table. Output is bit-for-bit identical to
+ * @ref nmod_mat_poly_mintbasis_rescomp on identical input: both variants
+ * apply the same row operations and the same nullspace pivot choice, only
+ * the residual bookkeeping differs. */
+void nmod_mat_poly_mintbasis_resupdate(nmod_mat_poly_t intbas,
+                                       slong * shift,
+                                       const ulong * pts,
+                                       const nmod_mat_struct * E,
+                                       slong d);
+
+/** Main `mintbasis` function: chooses between
+ * @ref nmod_mat_poly_mintbasis_rescomp and
+ * @ref nmod_mat_poly_mintbasis_resupdate depending on the shape of `E`
+ * and its number of points `d`.
+ *
+ * The condition here, `d*(m-n+1) <= m`, was found by direct measurement
+ * over a grid of `(m,n,d)`. TO INVESTIGATE.
+ * 
+ * \todo investigate for a better dispatcher.
+ */
+void nmod_mat_poly_mintbasis(nmod_mat_poly_t intbas,
+                             slong * shift,
+                             const ulong * pts,
+                             const nmod_mat_struct * E,
+                             slong d);
+
+//@} // doxygen group: M-IntBasis algorithm (uniform number of interpolation points)
 
 #ifdef __cplusplus
 }

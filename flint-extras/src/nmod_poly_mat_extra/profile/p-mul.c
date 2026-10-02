@@ -75,6 +75,8 @@ TIME_MUL(mul_geometric)
 TIME_MUL(mul_waksman)
 TIME_MUL(mul_vandermonde1)
 TIME_MUL(mul_vandermonde2)
+TIME_MUL(mul_sd_fft_direct)
+TIME_MUL(mul_sd_fft_matmul)
 
 /*-------------------------*/
 /*  main                   */
@@ -87,7 +89,7 @@ int main(int argc, char ** argv)
     flint_rand_set_seed(state, time(NULL), time(NULL)+129384125L);
 
     // bench functions
-    const slong nfuns = 6;
+    const slong nfuns = 8;
     typedef void (*timefun) (time_args, flint_rand_t);
     const timefun funs[] = {
         time_multiply,                      // 0
@@ -96,6 +98,8 @@ int main(int argc, char ** argv)
         time_mul_geometric,                 // 3
         time_mul_vandermonde1,              // 4
         time_mul_vandermonde2,              // 5
+        time_mul_sd_fft_direct,             // 6
+        time_mul_sd_fft_matmul,             // 7
     };
 
     const char * description[] = {
@@ -105,6 +109,8 @@ int main(int argc, char ** argv)
         "#3  --> mul_geometric                ",
         "#4  --> mul_vandermonde1             ",
         "#5  --> mul_vandermonde2             ",
+        "#6  --> mul_sd_fft_direct            ",
+        "#7  --> mul_sd_fft_matmul            ",
     };
 
     if (argc == 1)  // show usage

@@ -16,6 +16,8 @@
 #include <flint/nmod_types.h>
 #include <flint/nmod_poly.h>  /* for geometric_progression_t */
 
+#include "nmod_mat_poly.h"     /* for nmod_mat_poly_t */
+
 /* Hermite form helpers */
 void _atomic_solve_pivot_collision_uechelon_rowwise(nmod_poly_mat_t mat, nmod_poly_mat_t other,
                                                     slong pi1, slong pi2, slong j);
@@ -37,14 +39,48 @@ void _reduce_against_pivot_general_rowwise(nmod_poly_mat_t mat, nmod_poly_mat_t 
                                    nmod_poly_t u, nmod_poly_t v);
 ulong _normalize_pivot_general_rowwise(nmod_poly_mat_t mat, nmod_poly_mat_t other, slong i, slong j);
 
-/* multiplication helpers */
-void _nmod_poly_mat_mulmid_geometric1_precomp(nmod_poly_mat_t res,
-                                              const nmod_poly_mat_t pmat1,
-                                              const nmod_poly_mat_t pmat2,
-                                              slong nlo, slong nhi, nmod_geometric_progression_t G);
-void _nmod_poly_mat_mulmid_geometric2_precomp(nmod_poly_mat_t res,
-                                              const nmod_poly_mat_t pmat1,
-                                              const nmod_poly_mat_t pmat2,
-                                              slong nlo, slong nhi, nmod_geometric_progression_t G);
+
+/* ------------------------------------------------------------------------ */
+/* a few functions to help tests/profiles be more complete                  */
+/* ------------------------------------------------------------------------ */
+
+/* Same as nmod_poly_mat_set_trunc_from_mat_poly, with explicit control over
+ * the block kernel and the loop schedule of the underlying transposition.
+ *
+ * `kern` is one of NMOD_MAT_POLY_CONV_{SCALAR,VEC4,VEC8} (see
+ * nmod_mat_poly_extra/impl.h); any other value selects the default, narrowed
+ * if its block does not fit inside the problem.
+ *
+ * `dmaj` is 1 for the entry-major schedule (the stores into the output
+ * polynomials are long sequential streams) and 0 for the coefficient-major
+ * one (the loads from the input matrices are long sequential streams); any
+ * other value (e.g. -1) selects the default.  Note that the two schedules
+ * carry the opposite names in the other direction: `dmaj` always means
+ * "sweep the destination rows sequentially". */
+void _nmod_poly_mat_set_trunc_from_mat_poly(nmod_poly_mat_t pmat,
+                                            const nmod_mat_poly_t matp,
+                                            slong order,
+                                            int kern,
+                                            int dmaj);
+
+/* Same as _nmod_poly_mat_mul_geometric_precomp, with the soft bound (in
+ * bytes) on the memory used for the constant matrices given explicitly;
+ * 0 selects the default. Below the bound the product is performed in one
+ * go, above it the rows of A and then the columns of B are processed by
+ * groups. Exposed so that the tests can exercise the grouping at sizes
+ * that do not need hundreds of megabytes. */
+void _nmod_poly_mat_mul_geometric_precomp_bounded(nmod_poly_mat_t res,
+                                          const nmod_poly_mat_t pmat1, slong len1,
+                                          const nmod_poly_mat_t pmat2, slong len2,
+                                          nmod_geometric_progression_t G,
+                                          ulong membytes);
+
+/* Same for the middle product _nmod_poly_mat_mulmid_geometric_precomp. */
+void _nmod_poly_mat_mulmid_geometric_precomp_bounded(nmod_poly_mat_t res,
+                                             const nmod_poly_mat_t pmat1, slong len1,
+                                             const nmod_poly_mat_t pmat2, slong len2,
+                                             slong nlo, slong nhi,
+                                             nmod_geometric_progression_t G,
+                                             ulong membytes);
 
 #endif  /* NMOD_POLY_MAT_EXTRA_IMPL_H */
