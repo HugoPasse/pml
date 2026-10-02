@@ -27,9 +27,8 @@ int main(int argc, char** argv){
     const slong n = atoi(argv[3]);
 
     flint_printf("Timings with growing displacement rank\n");
-    flint_printf("Prime: %d, (%dx%d)-matrices\n",N,m,n);
+    flint_printf("Prime: %u, (%dx%d)-matrices\n",N,m,n);
     
-
     flint_printf("Disp. Rank |  Time (s) \n");
     for(int i=1; i<NB_ITER; i++){
         int rank = i*10 ; //* FLINT_MIN(n, m) / NB_ITER;

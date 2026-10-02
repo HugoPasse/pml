@@ -207,11 +207,34 @@ void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
     flint_free(res_tmp);
 }
 
+
+void nmod_toeplitz_like_mul_nmod_mat_left(nmod_toeplitz_like_t mat,
+                                            nmod_mat_t b,
+                                            nmod_mat_t res){
+    for(int i=0; i<nmod_mat_ncols(b); i++){
+        nn_ptr v = _nmod_vec_init(nmod_mat_nrows(b));
+        nn_ptr vres = _nmod_vec_init(mat->nrows);
+        
+        for(int j=0; j<nmod_mat_nrows(b); j++){
+            v[j] = nmod_mat_get_entry(b, j, i);
+        }
+        nmod_toeplitz_like_mul_nmod_vec_left(mat, v, vres);
+        
+        for(int j=0; j<mat->nrows; j++){
+           nmod_mat_set_entry(res, j, i, vres[j]); 
+        }
+        _nmod_vec_clear(v);
+        _nmod_vec_clear(vres);
+    }     
+}
+
 void nmod_toeplitz_like_mul_nmod_vec_right(nmod_toeplitz_like_t a,
                                            nn_ptr v, 
                                            nn_ptr res){
     // TODO
 }
+
+
 
 void nmod_toeplitz_like_mul(nmod_toeplitz_like_t a,
                              nmod_toeplitz_like_t b, 
@@ -228,78 +251,3 @@ void nmod_toeplitz_like_inv(nmod_toeplitz_like_t a,
 void nmod_toeplitz_like_reduce_gens(nmod_toeplitz_like_t mat){
     // TODO
 }
-
-// TODO: Qtilinv has an explicit formula, it should be faster to use it
-// TODO: Compute the polynomials P,Q,Qtil and Qtilinv at initialization, add as members of struct
-//void nmod_toeplitz_like_mul_nmod_vec_left_old(nmod_toeplitz_like_t a,
-//                                           nn_ptr v, 
-//                                           nn_ptr res){
-//    // Polynomials related to the displacement operator
-//    nmod_poly_t P,Q,Qtilinv;
-//    nmod_poly_init2(P, a->mod.n, a->nrows+1);
-//    nmod_poly_init2(Q, a->mod.n, a->ncols+1);
-//    nmod_poly_init2(Qtilinv, a->mod.n, a->ncols+1);
-//
-//    nmod_poly_zero(P); 
-//    nmod_poly_set_coeff_ui(P, a->nrows, 1);
-//
-//    nmod_poly_zero(Q); 
-//    nmod_poly_set_coeff_ui(Q, a->ncols, 1);
-//    nmod_poly_set_coeff_ui(Q, 0, a->mod.n-1);
-//
-//    nmod_poly_zero(Qtilinv); 
-//    nmod_poly_set_coeff_ui(Qtilinv, a->ncols, a->mod.n-1);
-//    nmod_poly_set_coeff_ui(Qtilinv, 0, 1);
-//    nmod_poly_invmod(Qtilinv, Qtilinv, P);
-//
-//    // Multiply by Y_Q
-//    // This is taking the reverse of the polynomial of v
-//    nmod_poly_t vx, res_poly;
-//    nmod_poly_init2(vx, a->mod.n, a->ncols);
-//    for(int i=0; i<a->ncols; i++){
-//        nmod_poly_set_coeff_ui(vx, i, v[a->ncols-i-1]);
-//    }
-//
-//    nmod_poly_init2(res_poly, a->mod.n, a->nrows);
-//    nmod_poly_zero(res_poly); 
-//
-//    nmod_poly_t tmp, gi;
-//    nmod_poly_init(tmp, a->mod.n); // Degree known, to specify 
-//    nmod_poly_init(gi, a->mod.n); 
-//    for(int i=0; i<a->ngens; i++){
-//        // Computing h_i as a polynomial
-//        nmod_poly_zero(tmp); 
-//        for(int j=0; j<a->ncols; j++){
-//            nmod_poly_set_coeff_ui(tmp, j, (a->H)[i][j]);
-//        }
-//        // First product by M_{hi,Q}
-//        nmod_poly_mulmod(tmp,tmp,vx,Q);
-//        // Product by J_n -> reverse polynomial
-//        nmod_poly_reverse(tmp,tmp,a->ncols);
-//        // Computing g_i as a polynomial
-//        nmod_poly_zero(gi);
-//        for(int j=0; j<a->nrows; j++){
-//            nmod_poly_set_coeff_ui(gi, j, (a->G)[i][j]);
-//        }
-//        // Second product by M_{gi,P}
-//        nmod_poly_mulmod(tmp,tmp,gi,P);
-//        // Adding the term to the complete sum
-//        nmod_poly_add(res_poly, res_poly, tmp);
-//    }
-//    //nmod_poly_mulmod(res_poly, res_poly, Qtilinv, P);
-//    nmod_poly_mullow(res_poly, res_poly, Qtilinv, a->nrows);
-//            
-//    //_nmod_vec_set(res, res_poly->coeffs, nmod_poly_degree(res_poly));
-//    for(int i=0; i<a->nrows; i++){
-//       res[i] = nmod_poly_get_coeff_ui(res_poly, i);    
-//    }
-//    
-//    nmod_poly_clear(vx);
-//    nmod_poly_clear(tmp);
-//    nmod_poly_clear(gi);
-//    nmod_poly_clear(res_poly);
-//
-//    nmod_poly_clear(P);
-//    nmod_poly_clear(Q);
-//    nmod_poly_clear(Qtilinv);
-//}

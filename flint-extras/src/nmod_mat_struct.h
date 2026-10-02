@@ -290,6 +290,10 @@ void nmod_toeplitz_like_mul_nmod_vec_left(nmod_toeplitz_like_t a,
                                            nn_ptr v, 
                                            nn_ptr res);
 
+void nmod_toeplitz_like_mul_nmod_mat_left(nmod_toeplitz_like_t mat,
+                                           nmod_mat_t b, 
+                                           nmod_mat_t res);
+
 void nmod_toeplitz_like_mul_nmod_vec_left_using_vec(nmod_toeplitz_like_t a,
                                            nn_ptr v, 
                                            nn_ptr res);
