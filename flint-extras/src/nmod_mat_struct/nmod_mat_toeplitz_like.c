@@ -1,8 +1,10 @@
 #include <flint/flint.h>
 #include <flint/nmod_mat.h>
 #include <flint/nmod_poly.h>
+#include <flint/nmod_types.h>
 #include <flint/nmod_vec.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "nmod_mat_struct.h"
 
@@ -32,12 +34,12 @@ void nmod_toeplitz_like_set(nmod_toeplitz_like_t mat,
         (mat->G)[i] = _nmod_vec_init(mat->nrows);
         _nmod_vec_set((mat->G)[i], G[i], mat->nrows);
         (mat->H)[i] = _nmod_vec_init(mat->ncols);
-        _nmod_vec_set((mat->G)[i], G[i], mat->nrows);
+        _nmod_vec_set((mat->H)[i], H[i], mat->ncols);
     }
 }
 
 void nmod_toeplitz_like_clear(nmod_toeplitz_like_t mat){
-    for (int i=0; i<mat->ngens; i++) {
+    for (int i=0; i<mat->ngens; i++){
         _nmod_vec_clear((mat->G)[i]);
         _nmod_vec_clear((mat->H)[i]);
     }
@@ -268,6 +270,134 @@ void nmod_toeplitz_like_inv(nmod_toeplitz_like_t a,
 }
 
 /* Generators reduction */
+void _generators_as_nmod_mat(nmod_toeplitz_like_t mat,
+                            nmod_mat_t G,
+                            nmod_mat_t H){
+    nmod_mat_init(G, mat->nrows, mat->ngens, mat->mod.n);  
+    nmod_mat_init(H, mat->ncols, mat->ngens, mat->mod.n); 
+
+    for(int i=0; i<mat->ngens; i++){
+        for(int j=0; j<mat->nrows; j++){
+            nmod_mat_set_entry(G, j, i, mat->G[i][j]);
+        }
+    }
+
+    for(int i=0; i<mat->ngens; i++){
+        for(int j=0; j<mat->ncols; j++){
+            nmod_mat_set_entry(H, j, i, mat->H[i][j]);
+        }
+    }
+}
+
 void nmod_toeplitz_like_reduce_gens(nmod_toeplitz_like_t mat){
-    // TODO
+    // Representing generators as matrices
+    nmod_mat_t G;    
+    nmod_mat_t H;    
+    _generators_as_nmod_mat(mat, G, H);
+    
+    //nmod_mat_t Ht;    
+    //nmod_mat_init(Ht, nmod_mat_ncols(H), nmod_mat_nrows(H), mat->mod.n);
+    //nmod_mat_transpose(Ht,H);
+    //nmod_mat_t GHt;
+    //nmod_mat_init(GHt, mat->nrows, mat->ncols, mat->mod.n);
+    //nmod_mat_zero(GHt);
+    //nmod_mat_mul(GHt, G, Ht);
+    //nmod_mat_print_pretty(GHt);
+
+    // PLU form of G 
+    slong *permg = flint_malloc(mat->nrows * sizeof(slong));
+    slong rg = nmod_mat_lu(permg, G, 0);
+    // Use submatrices to reduce the number of columns with no new allocation
+    nmod_mat_t G1, H1;
+    nmod_mat_window_init(G1, G, 0, 0, mat->nrows, rg);
+    nmod_mat_window_init(H1, H, 0, 0, mat->ncols, rg);
+    // Upper triangular matrix
+    nmod_mat_t Utg;
+    nmod_mat_init(Utg, mat->ngens, rg, mat->mod.n);
+    // Fill upper triangular matrix and clear lower triangular matrix
+    for(int i=0; i<rg; i++){
+        for(int j=i; j<mat->ngens; j++){
+            nmod_mat_set_entry(Utg, j, i, nmod_mat_get_entry(G, i, j));
+            nmod_mat_set_entry(G, i, j, 0);
+        }
+        nmod_mat_set_entry(G, i, i, 1);
+    }
+    // Apply the permutation to the lower triangular part 
+    nmod_mat_permute_rows(G1, permg, NULL); 
+    nmod_mat_mul(H1, H, Utg);
+    
+    // --------- Debug ----------------
+    //nmod_mat_t H1t;
+    //nmod_mat_init(H1t, nmod_mat_ncols(H1), nmod_mat_nrows(H1), mat->mod.n);
+    //nmod_mat_transpose(H1t, H1);
+    //nmod_mat_zero(GHt);
+    //nmod_mat_mul(GHt, G1, H1t);
+    //nmod_mat_print_pretty(GHt);
+
+    // PLU form of H 
+    slong *permh = flint_malloc(mat->ncols * sizeof(slong));
+    slong rh = nmod_mat_lu(permh, H, 0);
+    // Use submatrices to reduce the number of columns with no new allocation
+    nmod_mat_t G2, H2;
+    nmod_mat_window_init(G2, G1, 0, 0, mat->nrows, rh);
+    nmod_mat_window_init(H2, H1, 0, 0, mat->ncols, rh);
+    // Upper triangular matrix
+    nmod_mat_t Uth;
+    nmod_mat_init(Uth, rg, rh, mat->mod.n);
+    // Fill upper triangular matrix and clear lower triangular matrix
+    for(int i=0; i<rh; i++){
+        for(int j=i; j<mat->ngens; j++){
+            nmod_mat_set_entry(Uth, j, i, nmod_mat_get_entry(H1, i, j));
+            nmod_mat_set_entry(H1, i, j, 0);
+        }
+        nmod_mat_set_entry(H2, i, i, 1);
+    }
+    // Apply the permutation to the lower triangular part 
+    _nmod_vec_print(permh, mat->ncols, mat->mod);
+    nmod_mat_print_pretty(H2);
+    nmod_mat_permute_rows(H2, permh, NULL); 
+    nmod_mat_mul(G2, G1, Uth);
+
+    // Clearing matrix data 
+    nmod_toeplitz_like_clear(mat);
+    // Convert to nn_ptr*
+    mat->ngens = nmod_mat_ncols(H2);
+    mat->G = flint_malloc(mat->ngens*sizeof(nn_ptr));
+    mat->H = flint_malloc(mat->ngens*sizeof(nn_ptr));
+    for(int i=0; i<mat->ngens; i++){
+        (mat->G)[i] = _nmod_vec_init(mat->nrows);
+        (mat->H)[i] = _nmod_vec_init(mat->ncols);
+        for(int j=0; j<mat->nrows; j++){
+            (mat->G)[i][j] = nmod_mat_get_entry(G2,j,i);
+        }
+        for(int j=0; j<mat->ncols; j++){
+            (mat->H)[i][j] = nmod_mat_get_entry(H2,j,i);
+        }
+    } 
+
+    // --------- DEBUG --------- 
+
+    //nmod_mat_t H2t;
+    //nmod_mat_init(H2t, nmod_mat_ncols(H2), nmod_mat_nrows(H2), mat->mod.n);
+    //nmod_mat_transpose(H2t, H2);
+    //nmod_mat_zero(GHt);
+    //nmod_mat_mul(GHt, G2, H2t);
+    //nmod_mat_print_pretty(GHt);
+    
+    //nmod_mat_clear(Ht);
+    //nmod_mat_clear(H1t);
+    //nmod_mat_clear(H2t);
+    //nmod_mat_clear(GHt);
+
+    // Free memory
+    nmod_mat_window_clear(H2);
+    nmod_mat_window_clear(G2);
+    nmod_mat_window_clear(H1);
+    nmod_mat_window_clear(G1);
+    nmod_mat_clear(H);
+    nmod_mat_clear(G);
+    nmod_mat_clear(Uth);
+    nmod_mat_clear(Utg);
+    flint_free(permg);
+    flint_free(permh);
 }

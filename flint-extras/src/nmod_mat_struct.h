@@ -226,7 +226,7 @@ void nmod_mat_circulant_dense(nmod_mat_circulant_t mat,
 /* ---------------------------
  * Toeplitz-like matrices
  * Matrices such that M - Z_0 M Z_1^T = GH^T
- * Can be reconstructed
+ * has small rank
  * --------------------------- */
 typedef struct
 {
@@ -234,7 +234,7 @@ typedef struct
     //nmod_mat_lower_toeplitz_t* lower_gens; // Matrices L(g_i)
     //nmod_mat_upper_toeplitz_t* upper_gens; // Matrices U(h_i)
     nn_ptr* G;
-    nn_ptr*  H;
+    nn_ptr* H;
     int ngens;
     nmod_t mod;
 } nmod_toeplitz_like_struct;
@@ -313,7 +313,11 @@ void nmod_toeplitz_like_inv(nmod_toeplitz_like_t a,
 void nmod_mat_displacement_operator(nmod_mat_t mat,
                                     nmod_mat_t res);
 
-/* Generators */
+/* Generators manipulation */
+void _generators_as_nmod_mat(nmod_toeplitz_like_t mat,
+                            nmod_mat_t G,
+                            nmod_mat_t H);
+
 void nmod_toeplitz_like_reduce_gens(nmod_toeplitz_like_t mat);
 
 #endif 
