@@ -20,14 +20,16 @@ TEST_FUNCTION_START(nmod_mat_toeplitz_like_reduce_generators, state)
         nmod_mat_t densemat0;
         nmod_mat_init(densemat0, n, m, N);
         nmod_toeplitz_like_dense(mat, densemat0);
-
-        flint_printf("Ngens: %d \n", mat->ngens);
+        
+        //flint_printf("dense mat 0");
+        //nmod_mat_print_pretty(densemat0);
         nmod_toeplitz_like_reduce_gens(mat);
-        flint_printf("Ngens: %d \n\n", mat->ngens);
 
         nmod_mat_t densemat1;
         nmod_mat_init(densemat1, n, m, N);
         nmod_toeplitz_like_dense(mat, densemat1);
+        //flint_printf("dense mat 1");
+        //nmod_mat_print_pretty(densemat1);
         
         //nmod_mat_print_pretty(densemat0);
         //nmod_mat_print_pretty(densemat1);
